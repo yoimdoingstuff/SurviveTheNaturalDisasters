@@ -21,6 +21,7 @@ set(ENGINE_CORE_SOURCES
     engine/src/content/map_loader.c
     engine/src/render/draw.c
     engine/src/render/math.c
+    engine/src/render/mesh.c
     engine/src/render/renderer.c
     engine/src/render/gles2.c
 )
@@ -76,3 +77,7 @@ add_test(NAME nds_draw_list_test COMMAND nds_draw_list_test)
 add_executable(nds_render_math_test engine/tests/render_math_test.c)
 target_link_libraries(nds_render_math_test PRIVATE engine_core ${ENGINE_PLATFORM_LIBS})
 add_test(NAME nds_render_math_test COMMAND nds_render_math_test)
+
+add_executable(nds_mesh_test engine/tests/mesh_test.c)
+target_link_libraries(nds_mesh_test PRIVATE engine_core ${ENGINE_PLATFORM_LIBS})
+add_test(NAME nds_mesh_test COMMAND nds_mesh_test)
