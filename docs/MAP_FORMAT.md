@@ -8,7 +8,7 @@ The conversion boundary is:
 
 ## Current format
 
-The current loader supports:
+The current native loader supports:
 
 - Instance IDs and parent IDs
 - Instance class and name
@@ -21,13 +21,25 @@ The current loader supports:
 - Part anchored/can-collide state
 - SpawnLocation mapped to the runtime SpawnPoint class
 
+The importer also preserves source asset references as optional metadata:
+
+```text
+geometry
+  type: mesh
+  mesh: asset-id
+material
+  texture: asset-id
+```
+
+These references are intentionally not interpreted by the native loader yet. Keeping them in the project package means mesh/texture conversion can be added without changing the source importer again.
+
 Unsupported source properties are allowed to remain in the imported package as ignored metadata rather than making the entire import fail.
 
 ## Geometry roadmap
 
 The current renderer represents a Part as a cube. This is intentional for the first vertical slice, but it is not sufficient for the real NDS maps.
 
-The next map-format revision should add project-owned geometry references without coupling the runtime to Roblox's source representation:
+The next runtime revision should consume project-owned geometry references without coupling the runtime to Roblox's source representation:
 
 ```text
 geometry
