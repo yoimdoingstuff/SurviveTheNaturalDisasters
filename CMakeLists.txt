@@ -8,6 +8,8 @@ if(NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE Release)
 endif()
 
+enable_testing()
+
 set(ENGINE_CORE_SOURCES
     engine/src/core/log.c
     engine/src/core/config.c
@@ -56,3 +58,9 @@ add_executable(nds_runtime
 )
 
 target_link_libraries(nds_runtime PRIVATE engine_core ${ENGINE_PLATFORM_LIBS})
+
+add_executable(nds_map_loader_test
+    engine/tests/map_loader_test.c
+)
+target_link_libraries(nds_map_loader_test PRIVATE engine_core ${ENGINE_PLATFORM_LIBS})
+add_test(NAME nds_map_loader_test COMMAND nds_map_loader_test)
