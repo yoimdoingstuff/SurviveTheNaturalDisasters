@@ -6,6 +6,13 @@ static void nds_round_set_state(nds_round* round, nds_round_state state)
     round->state_time = 0.0f;
 }
 
+static nds_disaster_type nds_round_select_disaster(uint32_t round_number)
+{
+    /* Keep selection deterministic so offline play and future authoritative
+     * networking can reproduce the same round sequence. */
+    return (nds_disaster_type)((round_number - 1u) % 2u);
+}
+
 void nds_round_init(nds_round* round)
 {
     if (!round) return;
@@ -28,6 +35,7 @@ void nds_round_update(nds_round* round, float delta_seconds)
         if (round->state_time >= round->intermission_duration) {
             round->round_number++;
             round->player_survived = 0;
+            round->disaster = nds_round_select_disaster(round->round_number);
             nds_round_set_state(round, NDS_ROUND_PLAYING);
         }
         break;
@@ -54,6 +62,7 @@ const char* nds_disaster_type_name(nds_disaster_type disaster)
 {
     switch (disaster) {
     case NDS_DISASTER_EARTHQUAKE: return "Earthquake";
+    case NDS_DISASTER_WINDSTORM: return "Windstorm";
     default: return "Unknown";
     }
 }
