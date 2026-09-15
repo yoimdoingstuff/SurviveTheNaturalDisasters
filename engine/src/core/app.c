@@ -7,6 +7,7 @@
 #include "engine/scene/instance.h"
 #include "engine/scene/part.h"
 #include "engine/content/map_loader.h"
+#include "engine/content/map_catalog.h"
 #include "engine/render/draw.h"
 #include "engine/render/gles2.h"
 #include "engine/render/camera.h"
@@ -115,12 +116,36 @@ nds_result nds_app_run(const nds_app_options* options)
         nds_round_update(&round, (float)dt);
         if (round.state != previous_round_state) {
             NDS_LOGI(TAG, "round %u: %s (%s)", round.round_number, nds_round_state_name(round.state), nds_disaster_type_name(round.disaster));
-            if (round.state == NDS_ROUND_PLAYING) { elimination_logged = 0; nds_earthquake_start(&earthquake); }
-            else if (round.state == NDS_ROUND_RESULTS) { nds_earthquake_stop(&earthquake); round.player_survived = player.alive; NDS_LOGI(TAG, "round %u result: %s", round.round_number, player.alive ? "SURVIVED" : "ELIMINATED"); }
-            else if (round.state == NDS_ROUND_INTERMISSION && previous_round_state == NDS_ROUND_RESULTS) { nds_player_init(&player, scene); nds_player_apply_camera(&player, &camera); }
+            if (round.state == NDS_ROUND_PLAYING) {
+                size_t map_index = nds_map_catalog_select(round.round_number);
+                const char* map_path = options->map_path && options->map_path[0] ? options->map_path : nds_map_catalog_path(map_index);
+                const char* map_name = options->map_path && options->map_path[0] ? "Custom Map" : nds_map_catalog_name(map_index);
+                if (map_path) {
+                    nds_instance* next_scene = NULL;
+                    nds_result map_rc = load_startup_scene(map_path, mesh_cache, texture_cache, &next_scene);
+                    if (map_rc == NDS_OK && next_scene) {
+                        nds_instance_destroy(scene);
+                        scene = next_scene;
+                        nds_player_init(&player, scene);
+                        nds_player_apply_camera(&player, &camera);
+                        NDS_LOGI(TAG, "round %u map: %s (%s)", round.round_number, map_name ? map_name : "Unnamed", map_path);
+                    } else {
+                        NDS_LOGW(TAG, "round %u map selection failed: %s", round.round_number, map_path);
+                    }
+                }
+                elimination_logged = 0;
+                nds_earthquake_start(&earthquake);
+            } else if (round.state == NDS_ROUND_RESULTS) {
+                nds_earthquake_stop(&earthquake, scene);
+                round.player_survived = player.alive;
+                NDS_LOGI(TAG, "round %u result: %s", round.round_number, player.alive ? "SURVIVED" : "ELIMINATED");
+            } else if (round.state == NDS_ROUND_INTERMISSION && previous_round_state == NDS_ROUND_RESULTS) {
+                nds_player_init(&player, scene);
+                nds_player_apply_camera(&player, &camera);
+            }
         }
         if (round.state == NDS_ROUND_PLAYING && player.alive) {
-            nds_earthquake_update(&earthquake, &player, (float)dt);
+            nds_earthquake_update(&earthquake, &player, scene, (float)dt);
             nds_player_update(&player, scene, (float)dt,
                               platform_is_key_down(PLATFORM_KEY_W), platform_is_key_down(PLATFORM_KEY_S),
                               platform_is_key_down(PLATFORM_KEY_A), platform_is_key_down(PLATFORM_KEY_D),
