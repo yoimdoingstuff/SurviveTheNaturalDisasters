@@ -25,6 +25,7 @@ set(ENGINE_CORE_SOURCES
     engine/src/render/frustum.c
     engine/src/render/mesh.c
     engine/src/render/mesh_cache.c
+    engine/src/render/texture.c
     engine/src/render/renderer.c
     engine/src/render/gles2.c
 )
@@ -96,3 +97,8 @@ add_executable(nds_mesh_cache_test engine/tests/mesh_cache_test.c)
 target_link_libraries(nds_mesh_cache_test PRIVATE engine_core ${ENGINE_PLATFORM_LIBS})
 add_test(NAME nds_mesh_cache_test COMMAND nds_mesh_cache_test)
 set_tests_properties(nds_mesh_cache_test PROPERTIES WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
+
+add_executable(nds_texture_test engine/tests/texture_test.c)
+target_link_libraries(nds_texture_test PRIVATE engine_core ${ENGINE_PLATFORM_LIBS})
+add_test(NAME nds_texture_test COMMAND nds_texture_test)
+set_tests_properties(nds_texture_test PROPERTIES WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
