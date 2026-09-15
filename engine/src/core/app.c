@@ -60,19 +60,20 @@ static nds_result create_demo_scene(nds_instance** out_root)
     return NDS_OK;
 }
 
-static nds_result load_startup_scene(nds_instance** out_root)
+static nds_result load_startup_scene(const char* map_path, nds_instance** out_root)
 {
     nds_result rc;
+    const char* path = map_path && map_path[0] ? map_path : DEFAULT_MAP_PATH;
     if (!out_root) return NDS_ERR_INVALID_ARG;
     *out_root = NULL;
 
-    rc = nds_map_load_json(DEFAULT_MAP_PATH, out_root);
+    rc = nds_map_load_json(path, out_root);
     if (rc == NDS_OK) {
-        NDS_LOGI(TAG, "loaded project map: %s", DEFAULT_MAP_PATH);
+        NDS_LOGI(TAG, "loaded project map: %s", path);
         return NDS_OK;
     }
 
-    NDS_LOGW(TAG, "project map '%s' unavailable (%d), using built-in demo scene", DEFAULT_MAP_PATH, (int)rc);
+    NDS_LOGW(TAG, "project map '%s' unavailable (%d), using built-in demo scene", path, (int)rc);
     return create_demo_scene(out_root);
 }
 
@@ -113,7 +114,7 @@ nds_result nds_app_run(const nds_app_options* options)
     nds_draw_list_init(&draw_list);
     nds_camera_init(&camera);
 
-    rc = load_startup_scene(&scene);
+    rc = load_startup_scene(options->map_path, &scene);
     if (rc != NDS_OK) {
         NDS_LOGE(TAG, "scene creation failed (%d)", (int)rc);
         nds_draw_list_destroy(&draw_list);
