@@ -81,7 +81,7 @@ nds_result nds_app_run(const nds_app_options* options)
     rc = nds_gles2_renderer_create(&renderer, &render_desc);
     if (rc != NDS_OK) { NDS_LOGE(TAG, "renderer creation failed (%d)", (int)rc); nds_instance_destroy(scene); nds_texture_cache_destroy(texture_cache); nds_mesh_cache_destroy(mesh_cache); nds_draw_list_destroy(&draw_list); platform_destroy_window(); nds_config_destroy(cfg); platform_shutdown(); return rc; }
     NDS_LOGI(TAG, "OpenGL rendering backend active; WASD moves, SPACE jumps");
-    int render_width = win_desc.width, render_height = win_desc.height; nds_clock clock; nds_clock_init(&clock); nds_perf_reset(); unsigned long frames_run = 0; const int smoke_frames = options->smoke_test_frames;
+    int render_width = win_desc.width, render_height = win_desc.height; nds_clock clock; nds_clock_init(&clock); nds_perf_reset(); unsigned long frames_run = 0; const int smoke_frames = options->smoke_test_frames; int elimination_logged = 0;
     while (!platform_quit_requested()) {
         if (platform_poll_events() != 0) platform_request_quit();
         if (platform_is_key_down(PLATFORM_KEY_ESCAPE)) platform_request_quit();
@@ -91,9 +91,10 @@ nds_result nds_app_run(const nds_app_options* options)
         if (round.state != previous_round_state) {
             NDS_LOGI(TAG, "round %u: %s", round.round_number, nds_round_state_name(round.state));
             if (round.state == NDS_ROUND_PLAYING) {
+                elimination_logged = 0;
                 nds_earthquake_start(&earthquake);
             } else if (round.state == NDS_ROUND_RESULTS) {
-                nds_earthquake_stop(&earthquake);
+                nds_earthquake_stop(&earthquake, scene);
                 round.player_survived = player.alive;
                 NDS_LOGI(TAG, "round %u result: %s", round.round_number, player.alive ? "SURVIVED" : "ELIMINATED");
             } else if (round.state == NDS_ROUND_INTERMISSION && previous_round_state == NDS_ROUND_RESULTS) {
@@ -101,13 +102,16 @@ nds_result nds_app_run(const nds_app_options* options)
                 nds_player_apply_camera(&player, &camera);
             }
         }
-        if (round.state == NDS_ROUND_PLAYING) {
-            nds_earthquake_update(&earthquake, &player, (float)dt);
+        if (round.state == NDS_ROUND_PLAYING && player.alive) {
+            nds_earthquake_update(&earthquake, &player, scene, (float)dt);
             nds_player_update(&player, scene, (float)dt,
                               platform_is_key_down(PLATFORM_KEY_W), platform_is_key_down(PLATFORM_KEY_S),
                               platform_is_key_down(PLATFORM_KEY_A), platform_is_key_down(PLATFORM_KEY_D),
                               platform_is_key_down(PLATFORM_KEY_SPACE));
-            if (!player.alive) NDS_LOGW(TAG, "round %u: player eliminated", round.round_number);
+            if (!player.alive && !elimination_logged) {
+                NDS_LOGW(TAG, "round %u: player eliminated", round.round_number);
+                elimination_logged = 1;
+            }
         }
         nds_player_apply_camera(&player, &camera);
         int window_width = 0, window_height = 0; platform_get_window_size(&window_width, &window_height);
