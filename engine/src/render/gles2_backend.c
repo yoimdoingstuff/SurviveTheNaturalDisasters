@@ -123,13 +123,14 @@ struct nds_gles2_backend {
     size_t texture_cache_count;
 };
 
+/* 24 vertices, one four-vertex quad per face, with face-local 0..1 UVs. */
 static const GLfloat cube_vertices[] = {
-    -0.5f,-0.5f,0.5f, 0.5f,-0.5f,0.5f, 0.5f,0.5f,0.5f, -0.5f,0.5f,0.5f,
-    0.5f,-0.5f,-0.5f, -0.5f,-0.5f,-0.5f, -0.5f,0.5f,-0.5f, 0.5f,0.5f,-0.5f,
-    -0.5f,0.5f,-0.5f, -0.5f,0.5f,0.5f, 0.5f,0.5f,0.5f, 0.5f,0.5f,-0.5f,
-    -0.5f,-0.5f,0.5f, 0.5f,-0.5f,0.5f, 0.5f,-0.5f,-0.5f, -0.5f,-0.5f,-0.5f,
-    0.5f,-0.5f,0.5f, 0.5f,0.5f,0.5f, 0.5f,0.5f,-0.5f, 0.5f,-0.5f,-0.5f,
-    -0.5f,-0.5f,-0.5f, -0.5f,0.5f,-0.5f, -0.5f,0.5f,0.5f, -0.5f,-0.5f,0.5f
+    /* front */  -0.5f,-0.5f, 0.5f, 0.0f,0.0f,   0.5f,-0.5f, 0.5f, 1.0f,0.0f,   0.5f, 0.5f, 0.5f, 1.0f,1.0f,  -0.5f, 0.5f, 0.5f, 0.0f,1.0f,
+    /* back */    0.5f,-0.5f,-0.5f, 0.0f,0.0f,  -0.5f,-0.5f,-0.5f, 1.0f,0.0f,  -0.5f, 0.5f,-0.5f, 1.0f,1.0f,   0.5f, 0.5f,-0.5f, 0.0f,1.0f,
+    /* top */    -0.5f, 0.5f,-0.5f, 0.0f,0.0f,  -0.5f, 0.5f, 0.5f, 1.0f,0.0f,   0.5f, 0.5f, 0.5f, 1.0f,1.0f,   0.5f, 0.5f,-0.5f, 0.0f,1.0f,
+    /* bottom */ -0.5f,-0.5f, 0.5f, 0.0f,0.0f,   0.5f,-0.5f, 0.5f, 1.0f,0.0f,   0.5f,-0.5f,-0.5f, 1.0f,1.0f,  -0.5f,-0.5f,-0.5f, 0.0f,1.0f,
+    /* right */   0.5f,-0.5f, 0.5f, 0.0f,0.0f,   0.5f, 0.5f, 0.5f, 1.0f,0.0f,   0.5f, 0.5f,-0.5f, 1.0f,1.0f,   0.5f,-0.5f,-0.5f, 0.0f,1.0f,
+    /* left */   -0.5f,-0.5f,-0.5f, 0.0f,0.0f,  -0.5f, 0.5f,-0.5f, 1.0f,0.0f,  -0.5f, 0.5f, 0.5f, 1.0f,1.0f,  -0.5f,-0.5f, 0.5f, 0.0f,1.0f
 };
 static const GLushort cube_indices[] = {
     0,1,2,0,2,3, 4,5,6,4,6,7, 8,9,10,8,10,11,
@@ -251,10 +252,14 @@ nds_result nds_gles2_backend_begin(nds_gles2_backend* b){if(!b)return NDS_ERR_IN
 static nds_result draw_one_part(nds_gles2_backend* b,const nds_draw_part* p,const nds_mat4* pv)
 {
     nds_mat4 model,mvp;size_t index_count;int has_uv=0;nds_gpu_texture* texture=NULL;float r=(float)((p->color_rgba>>24)&0xff)/255.0f,g=(float)((p->color_rgba>>16)&0xff)/255.0f,bl=(float)((p->color_rgba>>8)&0xff)/255.0f,a=(float)(p->color_rgba&0xff)/255.0f;
-    if(p->mesh&&p->mesh->vertices&&p->mesh->indices&&p->mesh->vertex_count&&p->mesh->index_count){nds_gpu_mesh* gpu=get_gpu_mesh(b,p->mesh);if(!gpu)return NDS_ERR_UNKNOWN;b->gl.glBindBuffer(GL_ARRAY_BUFFER,gpu->vertex_buffer);b->gl.glBindBuffer(GL_ELEMENT_ARRAY_BUFFER,gpu->index_buffer);index_count=gpu->index_count;has_uv=1;}else{b->gl.glBindBuffer(GL_ARRAY_BUFFER,b->vertex_buffer);b->gl.glBindBuffer(GL_ELEMENT_ARRAY_BUFFER,b->index_buffer);index_count=sizeof(cube_indices)/sizeof(cube_indices[0]);}
-    b->gl.glVertexAttribPointer((GLuint)b->position_attrib,3,GL_FLOAT,GL_FALSE,has_uv?(GLsizei)sizeof(nds_mesh_vertex):0,(const void*)0);
-    if(has_uv){b->gl.glVertexAttribPointer((GLuint)b->uv_attrib,2,GL_FLOAT,GL_FALSE,(GLsizei)sizeof(nds_mesh_vertex),(const void*)(3*sizeof(float)));b->gl.glEnableVertexAttribArray((GLuint)b->uv_attrib);}else b->gl.glDisableVertexAttribArray((GLuint)b->uv_attrib);
-    if(has_uv&&p->texture){texture=get_gpu_texture(b,p->texture);if(!texture)return NDS_ERR_UNKNOWN;b->gl.glActiveTexture(GL_TEXTURE0);b->gl.glBindTexture(GL_TEXTURE_2D,texture->texture);}
+    if(p->mesh&&p->mesh->vertices&&p->mesh->indices&&p->mesh->vertex_count&&p->mesh->index_count){nds_gpu_mesh* gpu=get_gpu_mesh(b,p->mesh);if(!gpu)return NDS_ERR_UNKNOWN;b->gl.glBindBuffer(GL_ARRAY_BUFFER,gpu->vertex_buffer);b->gl.glBindBuffer(GL_ELEMENT_ARRAY_BUFFER,gpu->index_buffer);index_count=gpu->index_count;has_uv=1;}else{b->gl.glBindBuffer(GL_ARRAY_BUFFER,b->vertex_buffer);b->gl.glBindBuffer(GL_ELEMENT_ARRAY_BUFFER,b->index_buffer);index_count=sizeof(cube_indices)/sizeof(cube_indices[0]);has_uv=1;}
+    {
+        const GLsizei stride=has_uv?(p->mesh&&p->mesh->vertices?(GLsizei)sizeof(nds_mesh_vertex):(GLsizei)(5*sizeof(float))):0;
+        b->gl.glVertexAttribPointer((GLuint)b->position_attrib,3,GL_FLOAT,GL_FALSE,stride,(const void*)0);
+        b->gl.glVertexAttribPointer((GLuint)b->uv_attrib,2,GL_FLOAT,GL_FALSE,stride,(const void*)(3*sizeof(float)));
+        b->gl.glEnableVertexAttribArray((GLuint)b->uv_attrib);
+    }
+    if(p->texture){texture=get_gpu_texture(b,p->texture);if(!texture)return NDS_ERR_UNKNOWN;b->gl.glActiveTexture(GL_TEXTURE0);b->gl.glBindTexture(GL_TEXTURE_2D,texture->texture);}
     b->gl.glUniform1i(b->use_texture_uniform,texture?1:0);a*=1.0f-p->transparency;make_model(&model,p);nds_mat4_mul(&mvp,pv,&model);b->gl.glUniformMatrix4fv(b->mvp_uniform,1,GL_FALSE,mvp.m);b->gl.glUniform4f(b->color_uniform,r,g,bl,a);glDrawElements(GL_TRIANGLES,(GLsizei)index_count,GL_UNSIGNED_SHORT,(const void*)0);return NDS_OK;
 }
 
