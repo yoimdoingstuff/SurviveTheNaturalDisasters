@@ -26,12 +26,14 @@ set(ENGINE_CORE_SOURCES
 )
 
 if(WIN32)
+    list(APPEND ENGINE_CORE_SOURCES engine/src/render/gles2_backend.c)
     set(ENGINE_PLATFORM_SOURCES
         engine/src/platform/windows/platform_windows.c
     )
     set(ENGINE_PLATFORM_LIBS
         user32
         gdi32
+        opengl32
     )
     set(ENGINE_PLATFORM_ENTRY_POINT
         platform/windows/main.c
@@ -49,6 +51,7 @@ add_library(engine_core STATIC
 
 target_include_directories(engine_core PUBLIC
     engine/include
+    engine/src/render
 )
 
 if(MSVC)
@@ -62,20 +65,14 @@ add_executable(nds_runtime
 )
 target_link_libraries(nds_runtime PRIVATE engine_core ${ENGINE_PLATFORM_LIBS})
 
-add_executable(nds_map_loader_test
-    engine/tests/map_loader_test.c
-)
+add_executable(nds_map_loader_test engine/tests/map_loader_test.c)
 target_link_libraries(nds_map_loader_test PRIVATE engine_core ${ENGINE_PLATFORM_LIBS})
 add_test(NAME nds_map_loader_test COMMAND nds_map_loader_test)
 
-add_executable(nds_draw_list_test
-    engine/tests/draw_list_test.c
-)
+add_executable(nds_draw_list_test engine/tests/draw_list_test.c)
 target_link_libraries(nds_draw_list_test PRIVATE engine_core ${ENGINE_PLATFORM_LIBS})
 add_test(NAME nds_draw_list_test COMMAND nds_draw_list_test)
 
-add_executable(nds_render_math_test
-    engine/tests/render_math_test.c
-)
+add_executable(nds_render_math_test engine/tests/render_math_test.c)
 target_link_libraries(nds_render_math_test PRIVATE engine_core ${ENGINE_PLATFORM_LIBS})
 add_test(NAME nds_render_math_test COMMAND nds_render_math_test)
