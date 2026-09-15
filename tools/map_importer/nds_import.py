@@ -82,6 +82,17 @@ def normalize_instance(entry: dict[str, Any]) -> None:
     for source, target in part_fields.items():
         if source in props: entry.setdefault("part", {})[target] = props[source]
 
+    # Preserve source geometry/material references as project-owned metadata.
+    # The native loader may ignore these until the mesh/texture pipeline is ready.
+    mesh_id = props.get("MeshId")
+    if isinstance(mesh_id, str) and mesh_id.strip():
+        entry["geometry"] = {"type": "mesh", "mesh": mesh_id.strip()}
+    elif entry["class"] == "SpecialMesh" and isinstance(props.get("MeshId"), str) and props["MeshId"].strip():
+        entry["geometry"] = {"type": "mesh", "mesh": props["MeshId"].strip()}
+    texture_id = props.get("TextureID")
+    if isinstance(texture_id, str) and texture_id.strip():
+        entry.setdefault("material", {})["texture"] = texture_id.strip()
+
 def import_xml(source: Path, destination: Path) -> dict[str, Any]:
     try: root = ET.parse(source).getroot()
     except ET.ParseError as exc: raise ValueError(f"invalid XML: {exc}") from exc
@@ -92,7 +103,7 @@ def import_xml(source: Path, destination: Path) -> dict[str, Any]:
     for i in instances: classes[i["class"]] = classes.get(i["class"], 0) + 1
     package = {"format": "nds-map", "version": 1,
                "source": {"filename": source.name, "extension": source.suffix.lower()},
-               "importer": {"name": "nds_import", "version": "0.3"},
+               "importer": {"name": "nds_import", "version": "0.4"},
                "summary": {"instance_count": len(instances), "classes": classes,
                            "unsupported_classes": unsupported}, "instances": instances}
     destination.parent.mkdir(parents=True, exist_ok=True)
