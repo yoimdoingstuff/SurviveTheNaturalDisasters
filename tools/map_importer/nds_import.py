@@ -29,6 +29,8 @@ def scalar(text: str) -> Any:
 
 def property_value(node: ET.Element) -> Any:
     children = {tag(c): (c.text or "").strip() for c in node}
+    if "url" in children:
+        return children["url"]
     if set(children) >= {"X", "Y", "Z"}:
         try: return [float(children["X"]), float(children["Y"]), float(children["Z"])]
         except ValueError: pass
@@ -87,8 +89,6 @@ def normalize_instance(entry: dict[str, Any]) -> None:
     mesh_id = props.get("MeshId")
     if isinstance(mesh_id, str) and mesh_id.strip():
         entry["geometry"] = {"type": "mesh", "mesh": mesh_id.strip()}
-    elif entry["class"] == "SpecialMesh" and isinstance(props.get("MeshId"), str) and props["MeshId"].strip():
-        entry["geometry"] = {"type": "mesh", "mesh": props["MeshId"].strip()}
     texture_id = props.get("TextureID")
     if isinstance(texture_id, str) and texture_id.strip():
         entry.setdefault("material", {})["texture"] = texture_id.strip()
