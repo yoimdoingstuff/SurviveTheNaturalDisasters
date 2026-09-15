@@ -3,6 +3,7 @@
 
 #include "engine/core/types.h"
 #include "engine/render/draw.h"
+#include "engine/render/camera.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -25,7 +26,8 @@ void nds_gles2_renderer_destroy(nds_gles2_renderer* renderer);
 nds_result nds_gles2_renderer_resize(nds_gles2_renderer* renderer, int width, int height);
 nds_result nds_gles2_renderer_begin(nds_gles2_renderer* renderer);
 nds_result nds_gles2_renderer_draw_parts(nds_gles2_renderer* renderer,
-                                          const nds_draw_list* list);
+                                          const nds_draw_list* list,
+                                          const nds_camera* camera);
 nds_result nds_gles2_renderer_end(nds_gles2_renderer* renderer);
 
 #ifdef __cplusplus
