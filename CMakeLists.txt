@@ -29,12 +29,12 @@ if(WIN32)
     set(ENGINE_PLATFORM_SOURCES
         engine/src/platform/windows/platform_windows.c
     )
-    set(ENGINE_PLATFORM_ENTRY_POINT
-        platform/windows/main.c
-    )
     set(ENGINE_PLATFORM_LIBS
         user32
         gdi32
+    )
+    set(ENGINE_PLATFORM_ENTRY_POINT
+        platform/windows/main.c
     )
 else()
     message(FATAL_ERROR
@@ -60,7 +60,6 @@ endif()
 add_executable(nds_runtime
     ${ENGINE_PLATFORM_ENTRY_POINT}
 )
-
 target_link_libraries(nds_runtime PRIVATE engine_core ${ENGINE_PLATFORM_LIBS})
 
 add_executable(nds_map_loader_test
@@ -74,3 +73,9 @@ add_executable(nds_draw_list_test
 )
 target_link_libraries(nds_draw_list_test PRIVATE engine_core ${ENGINE_PLATFORM_LIBS})
 add_test(NAME nds_draw_list_test COMMAND nds_draw_list_test)
+
+add_executable(nds_render_math_test
+    engine/tests/render_math_test.c
+)
+target_link_libraries(nds_render_math_test PRIVATE engine_core ${ENGINE_PLATFORM_LIBS})
+add_test(NAME nds_render_math_test COMMAND nds_render_math_test)
