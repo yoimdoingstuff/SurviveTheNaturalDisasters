@@ -8,8 +8,18 @@
 extern "C" {
 #endif
 
+typedef struct nds_windstorm {
+    float elapsed;
+    float gust_timer;
+    float gust_interval;
+    float strength;
+    uint32_t gust_count;
+    uint8_t active;
+} nds_windstorm;
+
 typedef struct nds_disaster_system {
     nds_earthquake earthquake;
+    nds_windstorm windstorm;
     nds_disaster_type active_type;
     uint8_t active;
 } nds_disaster_system;
