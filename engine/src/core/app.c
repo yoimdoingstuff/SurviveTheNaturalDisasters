@@ -14,6 +14,7 @@
 #include "engine/render/texture_cache.h"
 #include "engine/game/player.h"
 #include "engine/game/round.h"
+#include "engine/game/disaster.h"
 
 #include <string.h>
 
@@ -67,8 +68,8 @@ nds_result nds_app_run(const nds_app_options* options)
     rc = platform_create_window(&win_desc);
     if (rc != NDS_OK) { NDS_LOGE(TAG, "platform_create_window failed (%d)", (int)rc); nds_config_destroy(cfg); platform_shutdown(); return rc; }
     NDS_LOGI(TAG, "boot ok: window %dx%d", win_desc.width, win_desc.height);
-    nds_instance* scene = NULL; nds_draw_list draw_list; nds_gles2_renderer* renderer = NULL; nds_mesh_cache* mesh_cache = NULL; nds_texture_cache* texture_cache = NULL; nds_camera camera; nds_player_controller player; nds_round round;
-    nds_draw_list_init(&draw_list); nds_camera_init(&camera); nds_round_init(&round);
+    nds_instance* scene = NULL; nds_draw_list draw_list; nds_gles2_renderer* renderer = NULL; nds_mesh_cache* mesh_cache = NULL; nds_texture_cache* texture_cache = NULL; nds_camera camera; nds_player_controller player; nds_round round; nds_earthquake earthquake;
+    nds_draw_list_init(&draw_list); nds_camera_init(&camera); nds_round_init(&round); nds_earthquake_init(&earthquake);
     rc = nds_mesh_cache_create(&mesh_cache, 256);
     if (rc != NDS_OK) { NDS_LOGE(TAG, "mesh cache creation failed (%d)", (int)rc); nds_draw_list_destroy(&draw_list); platform_destroy_window(); nds_config_destroy(cfg); platform_shutdown(); return rc; }
     rc = nds_texture_cache_create(&texture_cache, 256);
@@ -89,12 +90,24 @@ nds_result nds_app_run(const nds_app_options* options)
         nds_round_update(&round, (float)dt);
         if (round.state != previous_round_state) {
             NDS_LOGI(TAG, "round %u: %s", round.round_number, nds_round_state_name(round.state));
+            if (round.state == NDS_ROUND_PLAYING) {
+                nds_earthquake_start(&earthquake);
+            } else if (round.state == NDS_ROUND_RESULTS) {
+                nds_earthquake_stop(&earthquake);
+                round.player_survived = player.alive;
+                NDS_LOGI(TAG, "round %u result: %s", round.round_number, player.alive ? "SURVIVED" : "ELIMINATED");
+            } else if (round.state == NDS_ROUND_INTERMISSION && previous_round_state == NDS_ROUND_RESULTS) {
+                nds_player_init(&player, scene);
+                nds_player_apply_camera(&player, &camera);
+            }
         }
         if (round.state == NDS_ROUND_PLAYING) {
+            nds_earthquake_update(&earthquake, &player, (float)dt);
             nds_player_update(&player, scene, (float)dt,
                               platform_is_key_down(PLATFORM_KEY_W), platform_is_key_down(PLATFORM_KEY_S),
                               platform_is_key_down(PLATFORM_KEY_A), platform_is_key_down(PLATFORM_KEY_D),
                               platform_is_key_down(PLATFORM_KEY_SPACE));
+            if (!player.alive) NDS_LOGW(TAG, "round %u: player eliminated", round.round_number);
         }
         nds_player_apply_camera(&player, &camera);
         int window_width = 0, window_height = 0; platform_get_window_size(&window_width, &window_height);
@@ -103,7 +116,7 @@ nds_result nds_app_run(const nds_app_options* options)
         if (rc != NDS_OK) { NDS_LOGE(TAG, "render failed (%d)", (int)rc); platform_request_quit(); }
         nds_perf_end_frame(); frames_run++;
         if (smoke_frames > 0 && (int)frames_run >= smoke_frames) { NDS_LOGI(TAG, "smoke test target reached (%lu frames), requesting quit", frames_run); platform_request_quit(); }
-        if (frames_run % 300 == 0) { nds_perf_stats perf; nds_perf_get_stats(&perf); nds_mem_stats mem; nds_mem_get_stats(&mem); NDS_LOGI(TAG, "frame %lu: avg %.2fms (min %.2f / max %.2f) mem %zu bytes (peak %zu, %zu allocs / %zu frees)", frames_run, perf.avg_frame_ms, perf.min_frame_ms, perf.max_frame_ms, mem.current_bytes, mem.peak_bytes, mem.total_allocations, mem.peak_bytes, mem.total_allocations, mem.total_frees); }
+        if (frames_run % 300 == 0) { nds_perf_stats perf; nds_perf_get_stats(&perf); nds_mem_stats mem; nds_mem_get_stats(&mem); NDS_LOGI(TAG, "frame %lu: avg %.2fms (min %.2f / max %.2f) mem %zu bytes (peak %zu, %zu allocs / %zu frees)", frames_run, perf.avg_frame_ms, perf.min_frame_ms, perf.max_frame_ms, mem.current_bytes, mem.peak_bytes, mem.total_allocations, mem.total_frees); }
     }
     NDS_LOGI(TAG, "shutting down after %lu frames", frames_run); nds_gles2_renderer_destroy(renderer); nds_instance_destroy(scene); nds_texture_cache_destroy(texture_cache); nds_mesh_cache_destroy(mesh_cache); nds_draw_list_destroy(&draw_list); platform_destroy_window(); nds_config_destroy(cfg); platform_shutdown(); if (smoke_frames > 0) NDS_LOGI(TAG, "SMOKE TEST PASSED"); return NDS_OK;
 }
