@@ -9,6 +9,7 @@ extern "C" {
 #endif
 
 typedef struct nds_instance nds_instance;
+typedef void (*nds_instance_user_data_destructor)(void* user_data);
 
 typedef enum nds_instance_class {
     NDS_CLASS_INSTANCE = 0,
@@ -36,6 +37,10 @@ nds_instance* nds_instance_find_child(const nds_instance* instance, const char* 
 nds_instance* nds_instance_find_descendant(const nds_instance* instance, const char* name);
 nds_instance* nds_instance_find_path(const nds_instance* root, const char* path);
 const char* nds_instance_class_name(nds_instance_class class_id);
+
+void* nds_instance_get_user_data(const nds_instance* instance);
+nds_result nds_instance_set_user_data(nds_instance* instance, void* user_data,
+                                      nds_instance_user_data_destructor destructor);
 
 #ifdef __cplusplus
 }
