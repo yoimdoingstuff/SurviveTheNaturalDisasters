@@ -74,6 +74,21 @@ class NdsImporterTests(unittest.TestCase):
         self.assertEqual(part["geometry"], {"type": "mesh", "mesh": "rbxassetid://123", "texture": "rbxassetid://456"})
         self.assertEqual(package["assets"], {"meshes": ["rbxassetid://123"], "textures": ["rbxassetid://456"]})
 
+    def test_decal_texture_is_flattened_to_parent_part(self):
+        source = self.tmp_path / "decal.rbxlx"
+        output = self.tmp_path / "decal.json"
+        source.write_text(
+            '<roblox version="4"><Item class="DataModel"><Properties><string name="Name">Place</string></Properties>'
+            '<Item class="Part"><Properties><string name="Name">Island</string></Properties>'
+            '<Item class="Decal"><Properties><string name="Name">Front</string><Content name="Texture"><url>rbxassetid://789</url></Content>'
+            '<token name="Face">1</token></Properties></Item></Item></Item></roblox>', encoding="utf-8",
+        )
+        self.run_importer("import", str(source), "--output", str(output))
+        package = json.loads(output.read_text(encoding="utf-8"))
+        part = package["instances"][1]
+        self.assertEqual(part["geometry"], {"texture": "rbxassetid://789"})
+        self.assertEqual(package["assets"], {"meshes": [], "textures": ["rbxassetid://789"]})
+
     def test_asset_dependencies_are_deduplicated_and_sorted(self):
         source = self.tmp_path / "assets.rbxlx"
         output = self.tmp_path / "assets.json"
