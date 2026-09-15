@@ -19,6 +19,8 @@ set(ENGINE_CORE_SOURCES
     engine/src/scene/instance.c
     engine/src/scene/part.c
     engine/src/content/map_loader.c
+    engine/src/render/draw.c
+    engine/src/render/renderer.c
 )
 
 if(WIN32)
@@ -64,3 +66,9 @@ add_executable(nds_map_loader_test
 )
 target_link_libraries(nds_map_loader_test PRIVATE engine_core ${ENGINE_PLATFORM_LIBS})
 add_test(NAME nds_map_loader_test COMMAND nds_map_loader_test)
+
+add_executable(nds_draw_list_test
+    engine/tests/draw_list_test.c
+)
+target_link_libraries(nds_draw_list_test PRIVATE engine_core ${ENGINE_PLATFORM_LIBS})
+add_test(NAME nds_draw_list_test COMMAND nds_draw_list_test)
