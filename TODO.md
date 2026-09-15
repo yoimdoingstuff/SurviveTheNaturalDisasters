@@ -92,22 +92,22 @@ Legend:
 - [ ] Map-to-Instance validation tests
 
 ## Phase 4 - Physics and collision
-- [ ] Define physics abstraction suitable for legacy platforms
+- [~] Define physics abstraction suitable for legacy platforms
 - [x] Static world collision
 - [x] Primitive box collision
-- [ ] Broad-phase collision detection
-- [ ] Narrow-phase collision tests
+- [x] Broad-phase collision detection <!-- sweep-and-prune with reusable index storage -->
+- [~] Narrow-phase collision tests <!-- conservative oriented-box AABB contact solver -->
 - [ ] Raycasts
 - [ ] Overlap queries
 - [x] Gravity
 - [x] Velocity/acceleration integration
-- [ ] Friction and restitution
-- [ ] Anchored/unanchored behavior
+- [x] Friction and restitution
+- [x] Anchored/unanchored behavior
 - [ ] Basic constraints/joints
 - [x] Character collision controller
-- [ ] Physics update determinism
+- [~] Physics update determinism <!-- fixed-ish substeps and deterministic broad-phase ordering; full replay validation remains -->
 - [ ] Low-memory physics configuration for A6X
-- [ ] Physics stress test
+- [~] Physics stress test
 
 ## Phase 5 - Characters and humanoid systems
 - [ ] Character model abstraction
@@ -178,19 +178,20 @@ Legend:
 - [~] Implement round state machine
 - [~] Intermission/countdown
 - [ ] Map selection
-- [~] Disaster selection/randomization <!-- current round model selects the first implemented disaster -->
-- [~] Disaster lifecycle API <!-- current Earthquake lifecycle is integrated with round state -->
-- [~] First disaster implementation <!-- Earthquake prototype -->
+- [x] Disaster selection/randomization <!-- deterministic two-disaster rotation currently implemented -->
+- [~] Disaster lifecycle API <!-- Earthquake and Windstorm are integrated -->
+- [x] First disaster implementation <!-- Earthquake prototype -->
+- [~] Second disaster implementation <!-- Windstorm prototype -->
 - [x] Player survival/death tracking
 - [~] Round completion/results
 - [ ] One complete playable map
-- [~] One complete disaster
+- [~] Multiple disaster prototypes
 - [~] Offline single-player round using the same simulation interfaces intended for multiplayer
 - [ ] Validate complete end-to-end round
 
 ## Phase 10 - Base game systems
 - [ ] Multiple NDS maps
-- [ ] Multiple disaster types
+- [~] Multiple disaster types
 - [ ] Disaster configuration/settings
 - [ ] Round timing configuration
 - [ ] Spawn selection
