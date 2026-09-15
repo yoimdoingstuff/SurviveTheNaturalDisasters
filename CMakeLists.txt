@@ -17,6 +17,7 @@ set(ENGINE_CORE_SOURCES
     engine/src/core/memstat.c
     engine/src/core/app.c
     engine/src/game/player.c
+    engine/src/game/round.c
     engine/src/scene/instance.c
     engine/src/scene/instance_child_alias.c
     engine/src/scene/part.c
@@ -109,3 +110,7 @@ add_executable(nds_texture_cache_test engine/tests/texture_cache_test.c)
 target_link_libraries(nds_texture_cache_test PRIVATE engine_core ${ENGINE_PLATFORM_LIBS})
 add_test(NAME nds_texture_cache_test COMMAND nds_texture_cache_test)
 set_tests_properties(nds_texture_cache_test PROPERTIES WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
+
+add_executable(nds_round_test engine/tests/round_test.c)
+target_link_libraries(nds_round_test PRIVATE engine_core ${ENGINE_PLATFORM_LIBS})
+add_test(NAME nds_round_test COMMAND nds_round_test)
