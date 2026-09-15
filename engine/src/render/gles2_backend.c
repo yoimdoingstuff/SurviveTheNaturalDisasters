@@ -132,7 +132,13 @@ static nds_result create_program(nds_gles2_backend* b)
     if (!program) goto fail;
     b->gl.glAttachShader(program, vs); b->gl.glAttachShader(program, fs); b->gl.glLinkProgram(program);
     b->gl.glGetProgramiv(program, GL_LINK_STATUS, &ok);
-    if (!ok) goto fail;
+    if (!ok) {
+        char log[1024]; GLsizei written = 0;
+        b->gl.glGetProgramInfoLog(program, (GLsizei)sizeof(log)-1, &written, log);
+        log[written < (GLsizei)sizeof(log) ? written : (GLsizei)sizeof(log)-1] = '\0';
+        NDS_LOGE("gles2", "program link failed: %s", log);
+        goto fail;
+    }
     b->program = program;
     b->position_attrib = b->gl.glGetAttribLocation(program, "a_position");
     b->mvp_uniform = b->gl.glGetUniformLocation(program, "u_mvp");
@@ -181,8 +187,7 @@ nds_result nds_gles2_backend_create(nds_gles2_backend** out_backend, int width, 
     LOAD_GL(glBindBuffer,PFNGLBINDBUFFERPROC); LOAD_GL(glBufferData,PFNGLBUFFERDATAPROC); LOAD_GL(glDeleteBuffers,PFNGLDELETEBUFFERSPROC);
     LOAD_GL(glVertexAttribPointer,PFNGLVERTEXATTRIBPOINTERPROC); LOAD_GL(glEnableVertexAttribArray,PFNGLENABLEVERTEXATTRIBARRAYPROC); LOAD_GL(glDisableVertexAttribArray,PFNGLDISABLEVERTEXATTRIBARRAYPROC);
     if(create_program(b)!=NDS_OK) goto fail;
-    b->gl.glGenBuffers(1,&b->vertex_buffer); b->gl.glBindBuffer(GL_ARRAY_BUFFER,b->vertex_buffer); b->gl.glBufferData(GL_ARRAY_BUFFER,(GLsizeiptr)sizeof(cube_vertices),cube_vertices,GL_STATIC_DRAW);
-    b->gl.glGenBuffers(1,&b->index_buffer); b->gl.glBindBuffer(GL_ELEMENT_ARRAY_BUFFER,b->index_buffer); b->gl.glBufferData(GL_ELEMENT_ARRAY_BUFFER,(GLsizeiptr)sizeof(cube_indices),cube_indices,GL_STATIC_DRAW);
+    b->gl.glGenBuffers(1,&b->vertex_buffer); b->gl.glGenBuffers(1,&b->index_buffer);
     glEnable(GL_DEPTH_TEST); glDepthFunc(GL_LEQUAL); glEnable(GL_BLEND); glBlendFunc(GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA); glDisable(GL_CULL_FACE);
     nds_gles2_backend_resize(b,width,height); *out_backend=b; return NDS_OK;
 fail:
@@ -209,14 +214,29 @@ nds_result nds_gles2_backend_draw_parts(nds_gles2_backend* b,const nds_draw_list
     nds_camera_projection_matrix(camera,aspect,&projection);
     nds_camera_view_matrix(camera,&view);
     nds_mat4_mul(&pv,&projection,&view);
-    b->gl.glBindBuffer(GL_ARRAY_BUFFER,b->vertex_buffer); b->gl.glBindBuffer(GL_ELEMENT_ARRAY_BUFFER,b->index_buffer); b->gl.glEnableVertexAttribArray((GLuint)b->position_attrib); b->gl.glVertexAttribPointer((GLuint)b->position_attrib,3,GL_FLOAT,GL_FALSE,0,(const void*)0);
+    b->gl.glEnableVertexAttribArray((GLuint)b->position_attrib);
     for(size_t i=0;i<list->count;++i){
         const nds_draw_part* p=&list->parts[i];
         float r,g,bl,a;
+        size_t index_count;
         if(!p->visible||p->transparency>=1.0f)continue;
+        if (p->mesh && p->mesh->vertices && p->mesh->indices && p->mesh->vertex_count && p->mesh->index_count) {
+            b->gl.glBindBuffer(GL_ARRAY_BUFFER,b->vertex_buffer);
+            b->gl.glBufferData(GL_ARRAY_BUFFER,(GLsizeiptr)(p->mesh->vertex_count * sizeof(*p->mesh->vertices)),p->mesh->vertices,GL_STATIC_DRAW);
+            b->gl.glBindBuffer(GL_ELEMENT_ARRAY_BUFFER,b->index_buffer);
+            b->gl.glBufferData(GL_ELEMENT_ARRAY_BUFFER,(GLsizeiptr)(p->mesh->index_count * sizeof(*p->mesh->indices)),p->mesh->indices,GL_STATIC_DRAW);
+            index_count = p->mesh->index_count;
+        } else {
+            b->gl.glBindBuffer(GL_ARRAY_BUFFER,b->vertex_buffer);
+            b->gl.glBufferData(GL_ARRAY_BUFFER,(GLsizeiptr)sizeof(cube_vertices),cube_vertices,GL_STATIC_DRAW);
+            b->gl.glBindBuffer(GL_ELEMENT_ARRAY_BUFFER,b->index_buffer);
+            b->gl.glBufferData(GL_ELEMENT_ARRAY_BUFFER,(GLsizeiptr)sizeof(cube_indices),cube_indices,GL_STATIC_DRAW);
+            index_count = sizeof(cube_indices)/sizeof(cube_indices[0]);
+        }
+        b->gl.glVertexAttribPointer((GLuint)b->position_attrib,3,GL_FLOAT,GL_FALSE,0,(const void*)0);
         r=(float)((p->color_rgba>>24)&0xff)/255.0f; g=(float)((p->color_rgba>>16)&0xff)/255.0f; bl=(float)((p->color_rgba>>8)&0xff)/255.0f; a=(float)(p->color_rgba&0xff)/255.0f; a*=1.0f-p->transparency;
         make_model(&model,p); nds_mat4_mul(&mvp,&pv,&model); b->gl.glUniformMatrix4fv(b->mvp_uniform,1,GL_FALSE,mvp.m); b->gl.glUniform4f(b->color_uniform,r,g,bl,a);
-        glDrawElements(GL_TRIANGLES,(GLsizei)(sizeof(cube_indices)/sizeof(cube_indices[0])),GL_UNSIGNED_SHORT,(const void*)0);
+        glDrawElements(GL_TRIANGLES,(GLsizei)index_count,GL_UNSIGNED_SHORT,(const void*)0);
     }
     b->gl.glDisableVertexAttribArray((GLuint)b->position_attrib); return NDS_OK;
 }
