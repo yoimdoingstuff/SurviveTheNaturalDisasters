@@ -1,6 +1,7 @@
 #include "engine/game/disaster.h"
 
 #include <math.h>
+#include <stddef.h>
 
 static void move_parts(nds_instance* root, float dx, float dz)
 {
@@ -43,9 +44,14 @@ void nds_earthquake_start(nds_earthquake* earthquake)
     earthquake->active = 1;
 }
 
-void nds_earthquake_stop(nds_earthquake* earthquake)
+void nds_earthquake_stop(nds_earthquake* earthquake, nds_instance* scene)
 {
     if (!earthquake) return;
+    if (earthquake->active && scene) {
+        move_parts(scene, -earthquake->previous_shake_x, -earthquake->previous_shake_z);
+    }
+    earthquake->previous_shake_x = 0.0f;
+    earthquake->previous_shake_z = 0.0f;
     earthquake->active = 0;
 }
 
@@ -60,7 +66,6 @@ void nds_earthquake_update(nds_earthquake* earthquake, nds_player_controller* pl
     earthquake->elapsed += dt;
     earthquake->pulse_timer -= dt;
 
-    /* Move unanchored parts around their original positions without accumulating drift. */
     shake_x = sinf(earthquake->elapsed * 18.0f) * 0.10f;
     shake_z = cosf(earthquake->elapsed * 15.0f) * 0.08f;
     move_parts(scene, shake_x - earthquake->previous_shake_x,
@@ -68,7 +73,6 @@ void nds_earthquake_update(nds_earthquake* earthquake, nds_player_controller* pl
     earthquake->previous_shake_x = shake_x;
     earthquake->previous_shake_z = shake_z;
 
-    /* Keep the player under a small continuous tremor. */
     direction = sinf(earthquake->elapsed * 18.0f);
     player->velocity.x += direction * 1.2f * dt;
     player->velocity.z += cosf(earthquake->elapsed * 15.0f) * 1.0f * dt;
