@@ -47,6 +47,8 @@ Legend:
 - [ ] Build a first playable imported map before implementing every engine feature
 - [x] Track unsupported source features instead of blocking the whole import
 - [x] Add repeatable map re-import/update workflow so imported maps can be refreshed as the importer improves
+- [x] Add native runtime loader for the project-owned nds-map JSON format
+- [x] Add native map-loader CTest coverage
 - [x] Application bootstrap
 - [x] Platform abstraction layer <!-- interface + Windows backend done; other platform backends still pending -->
 - [x] File system abstraction
