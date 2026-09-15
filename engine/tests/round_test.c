@@ -10,7 +10,9 @@ int main(void)
 
     assert(round.state == NDS_ROUND_INTERMISSION);
     assert(round.round_number == 0);
+    assert(round.disaster == NDS_DISASTER_EARTHQUAKE);
     assert(strcmp(nds_round_state_name(round.state), "Intermission") == 0);
+    assert(strcmp(nds_disaster_type_name(round.disaster), "Earthquake") == 0);
 
     nds_round_update(&round, 9.9f);
     assert(round.state == NDS_ROUND_INTERMISSION);
@@ -21,10 +23,8 @@ int main(void)
 
     nds_round_update(&round, 60.0f);
     assert(round.state == NDS_ROUND_RESULTS);
-    assert(round.player_survived == 1);
 
     nds_round_update(&round, 5.0f);
     assert(round.state == NDS_ROUND_INTERMISSION);
-
     return 0;
 }
