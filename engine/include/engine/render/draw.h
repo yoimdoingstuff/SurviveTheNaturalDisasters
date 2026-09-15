@@ -15,6 +15,7 @@ typedef struct nds_draw_part {
     float transparency;
     uint32_t color_rgba;
     uint8_t visible;
+    const nds_mesh* mesh;
 } nds_draw_part;
 
 typedef struct nds_draw_list {
