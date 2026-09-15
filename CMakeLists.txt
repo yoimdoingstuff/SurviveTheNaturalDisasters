@@ -41,6 +41,23 @@ if(WIN32)
 else()
     message(FATAL_ERROR "No platform backend implemented for this target yet - Windows is currently the only supported build. See TODO.md Phase 0/1.")
 endif()
+
+# Keep the explicit source list, but verify it stays in sync with the tree.
+# This prevents a new implementation file from compiling nowhere and only
+# surfacing later as an unresolved-symbol linker failure.
+file(GLOB_RECURSE ENGINE_DISCOVERED_SOURCES CONFIGURE_DEPENDS
+    "${CMAKE_CURRENT_SOURCE_DIR}/engine/src/*.c"
+)
+set(ENGINE_CONFIGURED_SOURCES ${ENGINE_CORE_SOURCES} ${ENGINE_PLATFORM_SOURCES})
+set(ENGINE_MISSING_SOURCES ${ENGINE_DISCOVERED_SOURCES})
+foreach(ENGINE_SOURCE IN LISTS ENGINE_CONFIGURED_SOURCES)
+    get_filename_component(ENGINE_SOURCE_ABS "${CMAKE_CURRENT_SOURCE_DIR}/${ENGINE_SOURCE}" ABSOLUTE)
+    list(REMOVE_ITEM ENGINE_MISSING_SOURCES "${ENGINE_SOURCE_ABS}")
+endforeach()
+if(ENGINE_MISSING_SOURCES)
+    message(FATAL_ERROR "engine/src contains C sources not linked into engine_core: ${ENGINE_MISSING_SOURCES}")
+endif()
+
 add_library(engine_core STATIC ${ENGINE_CORE_SOURCES} ${ENGINE_PLATFORM_SOURCES})
 target_include_directories(engine_core PUBLIC engine/include engine/src/render)
 if(MSVC)
@@ -70,6 +87,7 @@ add_test(NAME nds_draw_list_test COMMAND nds_draw_list_test)
 set_tests_properties(nds_draw_list_test PROPERTIES WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
 add_executable(nds_render_math_test engine/tests/render_math_test.c)
 target_link_libraries(nds_render_math_test PRIVATE engine_core ${ENGINE_PLATFORM_LIBS})
+add_test(NAME nds_render_math_test COMMAND nds_render_math_test)
 add_test(NAME nds_render_math_test COMMAND nds_render_math_test)
 add_executable(nds_frustum_test engine/tests/frustum_test.c)
 target_link_libraries(nds_frustum_test PRIVATE engine_core ${ENGINE_PLATFORM_LIBS})
