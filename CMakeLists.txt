@@ -22,6 +22,7 @@ set(ENGINE_CORE_SOURCES
     engine/src/render/draw.c
     engine/src/render/math.c
     engine/src/render/mesh.c
+    engine/src/render/mesh_cache.c
     engine/src/render/renderer.c
     engine/src/render/gles2.c
 )
@@ -81,3 +82,7 @@ add_test(NAME nds_render_math_test COMMAND nds_render_math_test)
 add_executable(nds_mesh_test engine/tests/mesh_test.c)
 target_link_libraries(nds_mesh_test PRIVATE engine_core ${ENGINE_PLATFORM_LIBS})
 add_test(NAME nds_mesh_test COMMAND nds_mesh_test)
+
+add_executable(nds_mesh_cache_test engine/tests/mesh_cache_test.c)
+target_link_libraries(nds_mesh_cache_test PRIVATE engine_core ${ENGINE_PLATFORM_LIBS})
+add_test(NAME nds_mesh_cache_test COMMAND nds_mesh_cache_test)
