@@ -18,7 +18,6 @@ typedef ptrdiff_t GLsizeiptr;
 #define GL_FRAGMENT_SHADER 0x8B30
 #define GL_COMPILE_STATUS 0x8B81
 #define GL_LINK_STATUS 0x8B82
-#define GL_INFO_LOG_LENGTH 0x8B84
 
 typedef GLuint (*PFNGLCREATESHADERPROC)(GLenum);
 typedef void (*PFNGLSHADERSOURCEPROC)(GLuint, GLsizei, const GLchar* const*, const GLint*);
@@ -98,7 +97,9 @@ static const char* vertex_shader_source =
     "uniform mat4 u_mvp;\n"
     "void main(){gl_Position=u_mvp*vec4(a_position,1.0);}\n";
 static const char* fragment_shader_source =
+    "#ifdef GL_ES\n"
     "precision mediump float;\n"
+    "#endif\n"
     "uniform vec4 u_color;\n"
     "void main(){gl_FragColor=u_color;}\n";
 
@@ -207,9 +208,16 @@ nds_result nds_gles2_backend_draw_parts(nds_gles2_backend* b,const nds_draw_list
     aspect=b->height>0?(float)b->width/(float)b->height:1.0f;
     nds_mat4_perspective(&projection,b->fov_y_degrees,aspect,b->near_plane,b->far_plane); nds_mat4_translate(&view,0,-5,-14); nds_mat4_mul(&pv,&projection,&view);
     b->gl.glBindBuffer(GL_ARRAY_BUFFER,b->vertex_buffer); b->gl.glBindBuffer(GL_ELEMENT_ARRAY_BUFFER,b->index_buffer); b->gl.glEnableVertexAttribArray((GLuint)b->position_attrib); b->gl.glVertexAttribPointer((GLuint)b->position_attrib,3,GL_FLOAT,GL_FALSE,0,(const void*)0);
-    for(size_t i=0;i<list->count;++i){const nds_draw_part* p=&list->parts[i];uint32_t c=p->color_rgba;float a=(1-p->transparency)*(float)(c&255)/255.0f;if(a<=0)continue;make_model(&model,p);nds_mat4_mul(&mvp,&pv,&model);b->gl.glUniformMatrix4fv(b->mvp_uniform,1,GL_FALSE,mvp.m);b->gl.glUniform4f(b->color_uniform,(float)((c>>24)&255)/255.0f,(float)((c>>16)&255)/255.0f,(float)((c>>8)&255)/255.0f,a);glDrawElements(GL_TRIANGLES,36,GL_UNSIGNED_SHORT,(const void*)0);}
+    for(size_t i=0;i<list->count;++i){
+        const nds_draw_part* p=&list->parts[i];
+        float r,g,bl,a;
+        if(!p->visible||p->transparency>=1.0f)continue;
+        r=(float)((p->color_rgba>>24)&0xff)/255.0f; g=(float)((p->color_rgba>>16)&0xff)/255.0f; bl=(float)((p->color_rgba>>8)&0xff)/255.0f; a=(float)(p->color_rgba&0xff)/255.0f; a*=1.0f-p->transparency;
+        make_model(&model,p); nds_mat4_mul(&mvp,&pv,&model); b->gl.glUniformMatrix4fv(b->mvp_uniform,1,GL_FALSE,mvp.m); b->gl.glUniform4f(b->color_uniform,r,g,bl,a);
+        glDrawElements(GL_TRIANGLES,(GLsizei)(sizeof(cube_indices)/sizeof(cube_indices[0])),GL_UNSIGNED_SHORT,(const void*)0);
+    }
     b->gl.glDisableVertexAttribArray((GLuint)b->position_attrib); return NDS_OK;
 }
 
 nds_result nds_gles2_backend_end(nds_gles2_backend* b)
-{ if(!b)return NDS_ERR_INVALID_ARG;glFlush();platform_gl_swap_buffers();return NDS_OK; }
+{ if(!b)return NDS_ERR_INVALID_ARG; platform_gl_swap_buffers(); return NDS_OK; }
