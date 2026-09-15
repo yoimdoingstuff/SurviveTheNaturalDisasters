@@ -17,7 +17,9 @@ typedef struct nds_player_controller {
     float move_speed;
     float jump_speed;
     float gravity;
+    float health;
     uint8_t grounded;
+    uint8_t alive;
 } nds_player_controller;
 
 void nds_player_init(nds_player_controller* player, const nds_instance* scene);
@@ -25,6 +27,7 @@ void nds_player_update(nds_player_controller* player, const nds_instance* scene,
                        float dt, int move_forward, int move_back,
                        int move_left, int move_right, int jump);
 void nds_player_apply_camera(const nds_player_controller* player, nds_camera* camera);
+void nds_player_damage(nds_player_controller* player, float amount);
 
 #ifdef __cplusplus
 }
