@@ -10,7 +10,8 @@ typedef enum nds_round_state {
 } nds_round_state;
 
 typedef enum nds_disaster_type {
-    NDS_DISASTER_EARTHQUAKE = 0
+    NDS_DISASTER_EARTHQUAKE = 0,
+    NDS_DISASTER_WINDSTORM = 1
 } nds_disaster_type;
 
 typedef struct nds_round {
