@@ -9,6 +9,7 @@
 #include <math.h>
 #include <stdlib.h>
 
+/* Keep the backend limited to the GLES2-era API surface. */
 typedef char GLchar;
 typedef ptrdiff_t GLsizeiptr;
 
@@ -181,10 +182,7 @@ static void make_model(nds_mat4* out, const nds_draw_part* p)
 
 static nds_aabb part_world_bounds(const nds_draw_part* p)
 {
-    nds_mat4 model;
-    nds_aabb bounds;
-    int xi, yi, zi;
-    int first = 1;
+    nds_mat4 model; nds_aabb bounds; int xi, yi, zi; int first = 1;
     make_model(&model, p);
     for (xi = 0; xi < 2; ++xi) {
         const float x = xi ? 0.5f : -0.5f;
@@ -218,29 +216,49 @@ static nds_result upload_gpu_mesh(nds_gles2_backend* b, const nds_mesh* mesh, nd
     b->gl.glBufferData(GL_ARRAY_BUFFER, (GLsizeiptr)(mesh->vertex_count * sizeof(*mesh->vertices)), mesh->vertices, GL_STATIC_DRAW);
     b->gl.glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, out->index_buffer);
     b->gl.glBufferData(GL_ELEMENT_ARRAY_BUFFER, (GLsizeiptr)(mesh->index_count * sizeof(*mesh->indices)), mesh->indices, GL_STATIC_DRAW);
-    out->source = mesh;
-    out->index_count = mesh->index_count;
+    out->source = mesh; out->index_count = mesh->index_count;
     return NDS_OK;
 }
 
 static nds_gpu_mesh* get_gpu_mesh(nds_gles2_backend* b, const nds_mesh* mesh)
 {
-    size_t i;
-    nds_gpu_mesh* entry;
+    size_t i; nds_gpu_mesh* entry;
     if (!b || !mesh) return NULL;
     for (i = 0; i < b->mesh_cache_count; ++i)
         if (b->mesh_cache[i].source == mesh) return &b->mesh_cache[i];
     if (b->mesh_cache_count >= NDS_GPU_MESH_CACHE_CAPACITY) return NULL;
-    entry = &b->mesh_cache[b->mesh_cache_count];
-    *entry = (nds_gpu_mesh){0};
+    entry = &b->mesh_cache[b->mesh_cache_count]; *entry = (nds_gpu_mesh){0};
     if (upload_gpu_mesh(b, mesh, entry) != NDS_OK) {
         if (entry->vertex_buffer) b->gl.glDeleteBuffers(1, &entry->vertex_buffer);
         if (entry->index_buffer) b->gl.glDeleteBuffers(1, &entry->index_buffer);
-        *entry = (nds_gpu_mesh){0};
-        return NULL;
+        *entry = (nds_gpu_mesh){0}; return NULL;
     }
-    ++b->mesh_cache_count;
-    return entry;
+    ++b->mesh_cache_count; return entry;
+}
+
+static float camera_depth(const nds_camera* camera, const nds_draw_part* p)
+{
+    nds_mat4 view;
+    nds_camera_view_matrix(camera, &view);
+    return view.m[2]*p->position.x + view.m[6]*p->position.y + view.m[10]*p->position.z + view.m[14];
+}
+
+static void sort_transparent_parts(const nds_draw_list* list, const nds_camera* camera, size_t* order, size_t count)
+{
+    size_t i;
+    for (i = 0; i < count; ++i) order[i] = i;
+    for (i = 1; i < count; ++i) {
+        size_t key = order[i], j = i;
+        float key_depth = camera_depth(camera, &list->parts[key]);
+        while (j > 0) {
+            float prev_depth = camera_depth(camera, &list->parts[order[j - 1]]);
+            /* OpenGL camera looks down -Z. More negative means farther away. */
+            if (prev_depth <= key_depth) break;
+            order[j] = order[j - 1];
+            --j;
+        }
+        order[j] = key;
+    }
 }
 
 #define LOAD_GL(name, type) do { b->gl.name=(type)platform_gl_get_proc_address(#name); if(!b->gl.name) goto fail; } while(0)
@@ -265,10 +283,8 @@ nds_result nds_gles2_backend_create(nds_gles2_backend** out_backend, int width, 
     if(create_program(b)!=NDS_OK) goto fail;
     b->gl.glGenBuffers(1,&b->vertex_buffer); b->gl.glGenBuffers(1,&b->index_buffer);
     if (!b->vertex_buffer || !b->index_buffer) goto fail;
-    b->gl.glBindBuffer(GL_ARRAY_BUFFER,b->vertex_buffer);
-    b->gl.glBufferData(GL_ARRAY_BUFFER,(GLsizeiptr)sizeof(cube_vertices),cube_vertices,GL_STATIC_DRAW);
-    b->gl.glBindBuffer(GL_ELEMENT_ARRAY_BUFFER,b->index_buffer);
-    b->gl.glBufferData(GL_ELEMENT_ARRAY_BUFFER,(GLsizeiptr)sizeof(cube_indices),cube_indices,GL_STATIC_DRAW);
+    b->gl.glBindBuffer(GL_ARRAY_BUFFER,b->vertex_buffer); b->gl.glBufferData(GL_ARRAY_BUFFER,(GLsizeiptr)sizeof(cube_vertices),cube_vertices,GL_STATIC_DRAW);
+    b->gl.glBindBuffer(GL_ELEMENT_ARRAY_BUFFER,b->index_buffer); b->gl.glBufferData(GL_ELEMENT_ARRAY_BUFFER,(GLsizeiptr)sizeof(cube_indices),cube_indices,GL_STATIC_DRAW);
     glEnable(GL_DEPTH_TEST); glDepthFunc(GL_LEQUAL); glDisable(GL_BLEND); glDepthMask(GL_TRUE); glViewport(0,0,width,height);
     *out_backend=b; return NDS_OK;
 fail:
@@ -278,15 +294,10 @@ fail:
 
 void nds_gles2_backend_destroy(nds_gles2_backend* b)
 {
-    size_t i;
-    if(!b)return;
+    size_t i; if(!b)return;
     if (b->gl.glDeleteBuffers) {
-        for (i=0;i<b->mesh_cache_count;++i) {
-            if (b->mesh_cache[i].vertex_buffer) b->gl.glDeleteBuffers(1,&b->mesh_cache[i].vertex_buffer);
-            if (b->mesh_cache[i].index_buffer) b->gl.glDeleteBuffers(1,&b->mesh_cache[i].index_buffer);
-        }
-        if(b->vertex_buffer)b->gl.glDeleteBuffers(1,&b->vertex_buffer);
-        if(b->index_buffer)b->gl.glDeleteBuffers(1,&b->index_buffer);
+        for (i=0;i<b->mesh_cache_count;++i) { if (b->mesh_cache[i].vertex_buffer) b->gl.glDeleteBuffers(1,&b->mesh_cache[i].vertex_buffer); if (b->mesh_cache[i].index_buffer) b->gl.glDeleteBuffers(1,&b->mesh_cache[i].index_buffer); }
+        if(b->vertex_buffer)b->gl.glDeleteBuffers(1,&b->vertex_buffer); if(b->index_buffer)b->gl.glDeleteBuffers(1,&b->index_buffer);
     }
     if(b->gl.glDeleteProgram&&b->program)b->gl.glDeleteProgram(b->program);
     free(b); platform_gl_context_destroy();
@@ -300,50 +311,47 @@ nds_result nds_gles2_backend_begin(nds_gles2_backend* b)
 
 nds_result nds_gles2_backend_draw_parts(nds_gles2_backend* b,const nds_draw_list* list,const nds_camera* camera)
 {
-    nds_mat4 projection,view,pv,model,mvp; float aspect;
+    nds_mat4 projection,view,pv,model,mvp; float aspect; size_t* transparent_order = NULL; size_t transparent_count = 0;
     if(!b||!list||!camera)return NDS_ERR_INVALID_ARG;
     aspect=b->height>0?(float)b->width/(float)b->height:1.0f;
-    nds_camera_projection_matrix(camera,aspect,&projection);
-    nds_camera_view_matrix(camera,&view);
-    nds_mat4_mul(&pv,&projection,&view);
+    nds_camera_projection_matrix(camera,aspect,&projection); nds_camera_view_matrix(camera,&view); nds_mat4_mul(&pv,&projection,&view);
+    transparent_order = list->count ? (size_t*)malloc(list->count * sizeof(*transparent_order)) : NULL;
+    if (list->count && !transparent_order) return NDS_ERR_UNKNOWN;
+    for (size_t i = 0; i < list->count; ++i) if (list->parts[i].visible && list->parts[i].transparency > 0.0f && list->parts[i].transparency < 1.0f) transparent_order[transparent_count++] = i;
+    sort_transparent_parts(list, camera, transparent_order, transparent_count);
     b->gl.glEnableVertexAttribArray((GLuint)b->position_attrib);
     for (int pass = 0; pass < 2; ++pass) {
         const int transparent_pass = pass != 0;
+        if (transparent_pass) { glEnable(GL_BLEND); glBlendFunc(GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA); glDepthMask(GL_FALSE); }
+        else { glDisable(GL_BLEND); glDepthMask(GL_TRUE); }
         if (transparent_pass) {
-            glEnable(GL_BLEND);
-            glBlendFunc(GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA);
-            glDepthMask(GL_FALSE);
-        } else {
-            glDisable(GL_BLEND);
-            glDepthMask(GL_TRUE);
-        }
-        for(size_t i=0;i<list->count;++i){
-            const nds_draw_part* p=&list->parts[i];
-            float r,g,bl,a;
-            size_t index_count;
-            nds_aabb bounds;
-            if(!p->visible||p->transparency>=1.0f)continue;
-            if (transparent_pass != (p->transparency > 0.0f)) continue;
-            bounds = part_world_bounds(p);
-            if (!nds_frustum_aabb_visible(&pv, &bounds)) continue;
-            if (p->mesh && p->mesh->vertices && p->mesh->indices && p->mesh->vertex_count && p->mesh->index_count) {
-                nds_gpu_mesh* gpu = get_gpu_mesh(b, p->mesh);
-                if (!gpu) return NDS_ERR_UNKNOWN;
-                b->gl.glBindBuffer(GL_ARRAY_BUFFER,gpu->vertex_buffer);
-                b->gl.glBindBuffer(GL_ELEMENT_ARRAY_BUFFER,gpu->index_buffer);
-                index_count = gpu->index_count;
-            } else {
-                b->gl.glBindBuffer(GL_ARRAY_BUFFER,b->vertex_buffer);
-                b->gl.glBindBuffer(GL_ELEMENT_ARRAY_BUFFER,b->index_buffer);
-                index_count = sizeof(cube_indices)/sizeof(cube_indices[0]);
+            for (size_t oi = 0; oi < transparent_count; ++oi) {
+                const nds_draw_part* p = &list->parts[transparent_order[oi]];
+                nds_aabb bounds = part_world_bounds(p);
+                if (!nds_frustum_aabb_visible(&pv, &bounds)) continue;
+                size_t index_count;
+                if (p->mesh && p->mesh->vertices && p->mesh->indices && p->mesh->vertex_count && p->mesh->index_count) {
+                    nds_gpu_mesh* gpu = get_gpu_mesh(b, p->mesh); if (!gpu) { free(transparent_order); return NDS_ERR_UNKNOWN; }
+                    b->gl.glBindBuffer(GL_ARRAY_BUFFER,gpu->vertex_buffer); b->gl.glBindBuffer(GL_ELEMENT_ARRAY_BUFFER,gpu->index_buffer); index_count=gpu->index_count;
+                } else { b->gl.glBindBuffer(GL_ARRAY_BUFFER,b->vertex_buffer); b->gl.glBindBuffer(GL_ELEMENT_ARRAY_BUFFER,b->index_buffer); index_count=sizeof(cube_indices)/sizeof(cube_indices[0]); }
+                b->gl.glVertexAttribPointer((GLuint)b->position_attrib,3,GL_FLOAT,GL_FALSE,0,(const void*)0);
+                float r=(float)((p->color_rgba>>24)&0xff)/255.0f, g=(float)((p->color_rgba>>16)&0xff)/255.0f, bl=(float)((p->color_rgba>>8)&0xff)/255.0f, a=(float)(p->color_rgba&0xff)/255.0f;
+                a*=1.0f-p->transparency; make_model(&model,p); nds_mat4_mul(&mvp,&pv,&model); b->gl.glUniformMatrix4fv(b->mvp_uniform,1,GL_FALSE,mvp.m); b->gl.glUniform4f(b->color_uniform,r,g,bl,a); glDrawElements(GL_TRIANGLES,(GLsizei)index_count,GL_UNSIGNED_SHORT,(const void*)0);
             }
-            b->gl.glVertexAttribPointer((GLuint)b->position_attrib,3,GL_FLOAT,GL_FALSE,0,(const void*)0);
-            r=(float)((p->color_rgba>>24)&0xff)/255.0f; g=(float)((p->color_rgba>>16)&0xff)/255.0f; bl=(float)((p->color_rgba>>8)&0xff)/255.0f; a=(float)(p->color_rgba&0xff)/255.0f; a*=1.0f-p->transparency;
-            make_model(&model,p); nds_mat4_mul(&mvp,&pv,&model); b->gl.glUniformMatrix4fv(b->mvp_uniform,1,GL_FALSE,mvp.m); b->gl.glUniform4f(b->color_uniform,r,g,bl,a);
-            glDrawElements(GL_TRIANGLES,(GLsizei)index_count,GL_UNSIGNED_SHORT,(const void*)0);
+        } else {
+            for(size_t i=0;i<list->count;++i){
+                const nds_draw_part* p=&list->parts[i]; if(!p->visible||p->transparency>=1.0f||p->transparency>0.0f)continue;
+                nds_aabb bounds=part_world_bounds(p); if(!nds_frustum_aabb_visible(&pv,&bounds))continue;
+                size_t index_count;
+                if(p->mesh&&p->mesh->vertices&&p->mesh->indices&&p->mesh->vertex_count&&p->mesh->index_count){nds_gpu_mesh* gpu=get_gpu_mesh(b,p->mesh);if(!gpu){free(transparent_order);return NDS_ERR_UNKNOWN;}b->gl.glBindBuffer(GL_ARRAY_BUFFER,gpu->vertex_buffer);b->gl.glBindBuffer(GL_ELEMENT_ARRAY_BUFFER,gpu->index_buffer);index_count=gpu->index_count;}
+                else{b->gl.glBindBuffer(GL_ARRAY_BUFFER,b->vertex_buffer);b->gl.glBindBuffer(GL_ELEMENT_ARRAY_BUFFER,b->index_buffer);index_count=sizeof(cube_indices)/sizeof(cube_indices[0]);}
+                b->gl.glVertexAttribPointer((GLuint)b->position_attrib,3,GL_FLOAT,GL_FALSE,0,(const void*)0);
+                float r=(float)((p->color_rgba>>24)&0xff)/255.0f,g=(float)((p->color_rgba>>16)&0xff)/255.0f,bl=(float)((p->color_rgba>>8)&0xff)/255.0f,a=(float)(p->color_rgba&0xff)/255.0f;
+                make_model(&model,p);nds_mat4_mul(&mvp,&pv,&model);b->gl.glUniformMatrix4fv(b->mvp_uniform,1,GL_FALSE,mvp.m);b->gl.glUniform4f(b->color_uniform,r,g,bl,a);glDrawElements(GL_TRIANGLES,(GLsizei)index_count,GL_UNSIGNED_SHORT,(const void*)0);
+            }
         }
     }
-    glDisable(GL_BLEND); glDepthMask(GL_TRUE); b->gl.glDisableVertexAttribArray((GLuint)b->position_attrib); return NDS_OK;
+    free(transparent_order); glDisable(GL_BLEND); glDepthMask(GL_TRUE); b->gl.glDisableVertexAttribArray((GLuint)b->position_attrib); return NDS_OK;
 }
 
 nds_result nds_gles2_backend_end(nds_gles2_backend* b)
