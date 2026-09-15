@@ -53,10 +53,11 @@ nds_result nds_gles2_renderer_begin(nds_gles2_renderer* renderer)
 }
 
 nds_result nds_gles2_renderer_draw_parts(nds_gles2_renderer* renderer,
-                                          const nds_draw_list* list)
+                                          const nds_draw_list* list,
+                                          const nds_camera* camera)
 {
-    if (!renderer || !list) return NDS_ERR_INVALID_ARG;
-    return nds_gles2_backend_draw_parts(renderer->backend, list);
+    if (!renderer || !list || !camera) return NDS_ERR_INVALID_ARG;
+    return nds_gles2_backend_draw_parts(renderer->backend, list, camera);
 }
 
 nds_result nds_gles2_renderer_end(nds_gles2_renderer* renderer)
