@@ -68,7 +68,8 @@ Legend:
 - [x] Camera <!-- backend-neutral camera matrices added -->
 - [x] Frustum culling <!-- conservative Part bounds are tested against the camera view-projection before GPU submission -->
 - [~] Mesh loading <!-- NDSMESH parser, fixture, map-reference resolution, CPU cache, draw-data propagation, and GPU buffer caching are implemented; source mesh conversion remains -->
-- [~] Transparency <!-- Part transparency reaches renderer; alpha blending policy still pending -->
+- [~] Transparency <!-- alpha blending and separate opaque/transparent depth-write passes are implemented; transparent draw ordering remains -->
+- [x] Persistent cube GPU buffers <!-- static Part geometry is uploaded once instead of every draw -->
 - [ ] UI rendering
 - [ ] A6X performance test scene
 - [ ] iOS 8 renderer validation
