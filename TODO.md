@@ -58,12 +58,12 @@ Legend:
 ## Phase 2 - Rendering
 - [x] Define renderer interface and scene draw data
 - [~] OpenGL ES 2 renderer
-- [ ] Shader/material system compatible with GLES2
-- [ ] Texture loading
+- [~] Shader/material system compatible with GLES2 <!-- basic shader path exists; textured material binding remains -->
+- [~] Texture loading <!-- project-owned RGBA8 loader/cache exists; GPU texture upload/sampling remains -->
 - [ ] Basic lighting
 - [x] Camera
 - [x] Frustum culling
-- [~] Mesh loading
+- [~] Mesh loading <!-- NDSMESH parser, UV parsing, fixtures, map-reference resolution, CPU cache, draw-data propagation, and GPU buffer caching are implemented; source mesh conversion remains -->
 - [x] Transparency
 - [x] Persistent cube GPU buffers
 - [ ] UI rendering
