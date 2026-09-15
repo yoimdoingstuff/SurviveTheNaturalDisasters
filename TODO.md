@@ -58,6 +58,7 @@ Legend:
 
 ## Phase 2 - Rendering
 
+- [~] Define renderer interface and scene draw data
 - [ ] OpenGL ES 2 renderer
 - [ ] Shader/material system compatible with GLES2
 - [ ] Texture loading
@@ -81,7 +82,7 @@ Legend:
 - [x] Name lookup
 - [x] Folder
 - [x] Model
-- [x] Part (scene class supported; geometry properties follow importer/runtime work)
+- [x] Part (scene class + position/size/rotation/visual/physics property storage)
 - [x] Spawn point (scene class)
 - [x] Camera object (scene class)
 - [x] Character object (scene class)
