@@ -60,20 +60,20 @@ Legend:
 
 ## Phase 2 - Rendering
 
-- [~] Define renderer interface and scene draw data
-- [ ] OpenGL ES 2 renderer
+- [x] Define renderer interface and scene draw data
+- [~] OpenGL ES 2 renderer <!-- backend lifecycle + first Windows OpenGL vertical slice; true GLES2 shader/VBO path still pending -->
 - [ ] Shader/material system compatible with GLES2
 - [ ] Texture loading
 - [ ] Mesh loading
 - [ ] Basic lighting
-- [ ] Camera
+- [x] Camera <!-- backend-neutral camera matrices added -->
 - [ ] Frustum culling
-- [ ] Transparency
+- [~] Transparency <!-- Part transparency reaches renderer; alpha blending policy still pending -->
 - [ ] UI rendering
 - [ ] A6X performance test scene
 - [ ] iOS 8 renderer validation
 - [ ] Android GLES2 renderer validation
-- [ ] Windows OpenGL renderer validation
+- [~] Windows OpenGL renderer validation <!-- native WGL context and first Part cube draw added; local runtime validation still required -->
 - [ ] iOS 6 renderer compatibility test
 
 ## Phase 3 - Scene/Instance model
