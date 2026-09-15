@@ -14,6 +14,7 @@ typedef struct map_entry {
     char* class_name;
     char* name;
     char* mesh_asset;
+    char* texture_asset;
     nds_vec3 position;
     nds_vec3 size;
     nds_vec3 rotation;
@@ -57,20 +58,16 @@ static int number(parser* p, double* out)
     char* endptr; ws(p); if (p->p >= p->end) return 0;
     *out = strtod(p->p, &endptr); if (endptr == p->p || endptr > p->end) return 0; p->p = endptr; return 1;
 }
-
 static int integer_value(parser* p, int* out)
 {
     double value;
     if (!number(p, &value) || value < 0.0 || value > 2147483647.0 || value != (double)(int)value) return 0;
-    *out = (int)value;
-    return 1;
+    *out = (int)value; return 1;
 }
-
 static int literal(parser* p, const char* text)
 {
     size_t n = strlen(text); ws(p); if ((size_t)(p->end - p->p) < n || strncmp(p->p, text, n) != 0) return 0; p->p += n; return 1;
 }
-
 static int skip_value(parser* p);
 static int skip_array(parser* p)
 {
@@ -90,13 +87,11 @@ static int skip_value(parser* p)
     if (c == 't') return literal(p, "true"); if (c == 'f') return literal(p, "false"); if (c == 'n') return literal(p, "null");
     { double v; return number(p, &v); }
 }
-
 static int vector3(parser* p, nds_vec3* v)
 {
     double x, y, z; if (!ch(p, '[') || !number(p, &x) || !ch(p, ',') || !number(p, &y) || !ch(p, ',') || !number(p, &z) || !ch(p, ']')) return 0;
     v->x = (float)x; v->y = (float)y; v->z = (float)z; return 1;
 }
-
 static nds_instance_class class_id(const char* name)
 {
     if (strcmp(name, "DataModel") == 0 || strcmp(name, "Workspace") == 0) return NDS_CLASS_DATAMODEL;
@@ -109,7 +104,6 @@ static nds_instance_class class_id(const char* name)
     if (strcmp(name, "Player") == 0) return NDS_CLASS_PLAYER;
     return NDS_CLASS_INSTANCE;
 }
-
 static int parse_entry(parser* p, map_entry* e)
 {
     char* key; double v;
@@ -150,6 +144,9 @@ static int parse_entry(parser* p, map_entry* e)
                 if (strcmp(gk, "mesh") == 0) {
                     free(e->mesh_asset); e->mesh_asset = json_string(p);
                     if (!e->mesh_asset) { free(gk); free(key); return 0; }
+                } else if (strcmp(gk, "texture") == 0) {
+                    free(e->texture_asset); e->texture_asset = json_string(p);
+                    if (!e->texture_asset) { free(gk); free(key); return 0; }
                 } else if (!skip_value(p)) { free(gk); free(key); return 0; }
                 free(gk); ws(p); if (ch(p, '}')) break; if (!ch(p, ',')) { free(key); return 0; }
             }
@@ -157,27 +154,22 @@ static int parse_entry(parser* p, map_entry* e)
         free(key); ws(p); if (ch(p, '}')) return 1; if (!ch(p, ',')) return 0;
     }
 }
-
 static void free_entries(map_entry* entries, size_t count)
-{ size_t i; for (i=0;i<count;++i) { free(entries[i].class_name); free(entries[i].name); free(entries[i].mesh_asset); } free(entries); }
-
+{ size_t i; for (i=0;i<count;++i) { free(entries[i].class_name); free(entries[i].name); free(entries[i].mesh_asset); free(entries[i].texture_asset); } free(entries); }
 static void destroy_object_graph(nds_instance** objects, size_t count)
 {
     nds_instance** roots; size_t root_count = 0, i;
-    roots = (nds_instance**)calloc(count ? count : 1, sizeof(*roots));
-    if (!roots) return;
+    roots = (nds_instance**)calloc(count ? count : 1, sizeof(*roots)); if (!roots) return;
     for (i = 0; i < count; ++i) if (objects[i] && nds_instance_get_parent(objects[i]) == NULL) roots[root_count++] = objects[i];
     for (i = 0; i < root_count; ++i) nds_instance_destroy(roots[i]);
     free(roots);
 }
-
 nds_result nds_map_load_json_text(const char* text, nds_instance** out_root)
 {
     parser p; map_entry* entries; size_t count=0, capacity=64, i; nds_instance** objects; nds_instance* root=NULL;
     if (!text || !out_root) return NDS_ERR_INVALID_ARG; *out_root=NULL;
     entries=(map_entry*)calloc(capacity,sizeof(*entries)); if (!entries) return NDS_ERR_UNKNOWN;
-    p.p=text; p.end=text+strlen(text); ws(&p);
-    if (!ch(&p,'{')) { free(entries); return NDS_ERR_IO; }
+    p.p=text; p.end=text+strlen(text); ws(&p); if (!ch(&p,'{')) { free(entries); return NDS_ERR_IO; }
     while (1) {
         char* key=json_string(&p); if (!key || !ch(&p,':')) { free(key); free_entries(entries,count); return NDS_ERR_IO; }
         if (strcmp(key,"instances")==0) {
@@ -191,64 +183,38 @@ nds_result nds_map_load_json_text(const char* text, nds_instance** out_root)
     }
     ws(&p); if (p.p != p.end) { free_entries(entries,count); return NDS_ERR_IO; }
     if (count == 0 || count > NDS_MAP_MAX_INSTANCES) { free_entries(entries,count); return NDS_ERR_IO; }
-
-    /* Validate the complete ID domain before allocating any Instances. */
-    for (i=0;i<count;++i) {
-        size_t j;
-        if (entries[i].id < 0 || entries[i].id >= (int)count) { free_entries(entries,count); return NDS_ERR_IO; }
-        for (j=0;j<i;++j) if (entries[j].id == entries[i].id) { free_entries(entries,count); return NDS_ERR_IO; }
-        if (entries[i].parent >= (int)count) { free_entries(entries,count); return NDS_ERR_IO; }
-    }
-
+    for (i=0;i<count;++i) { size_t j; if (entries[i].id < 0 || entries[i].id >= (int)count) { free_entries(entries,count); return NDS_ERR_IO; } for (j=0;j<i;++j) if (entries[j].id == entries[i].id) { free_entries(entries,count); return NDS_ERR_IO; } if (entries[i].parent >= (int)count) { free_entries(entries,count); return NDS_ERR_IO; } }
     objects=(nds_instance**)calloc(count,sizeof(*objects)); if (!objects) { free_entries(entries,count); return NDS_ERR_UNKNOWN; }
-    for (i=0;i<count;++i) {
-        objects[i]=nds_instance_create(class_id(entries[i].class_name?entries[i].class_name:"Instance"),entries[i].name?entries[i].name:"Instance");
-        if (!objects[i]) { destroy_object_graph(objects,i); free(objects); free_entries(entries,count); return NDS_ERR_UNKNOWN; }
-    }
+    for (i=0;i<count;++i) { objects[i]=nds_instance_create(class_id(entries[i].class_name?entries[i].class_name:"Instance"),entries[i].name?entries[i].name:"Instance"); if (!objects[i]) { destroy_object_graph(objects,i); free(objects); free_entries(entries,count); return NDS_ERR_UNKNOWN; } }
     for (i=0;i<count;++i) {
         map_entry* e=&entries[i]; size_t parent_index = 0; int has_parent = e->parent >= 0;
-        if (has_parent) {
-            int found = 0; size_t j;
-            for (j=0;j<count;++j) if (entries[j].id == e->parent) { parent_index=j; found=1; break; }
-            if (!found || parent_index == i || nds_instance_set_parent(objects[i],objects[parent_index])!=NDS_OK) { destroy_object_graph(objects,count); free(objects); free_entries(entries,count); return NDS_ERR_IO; }
-        } else if (root) {
-            destroy_object_graph(objects,count); free(objects); free_entries(entries,count); return NDS_ERR_IO;
-        } else root=objects[i];
+        if (has_parent) { int found = 0; size_t j; for (j=0;j<count;++j) if (entries[j].id == e->parent) { parent_index=j; found=1; break; } if (!found || parent_index == i || nds_instance_set_parent(objects[i],objects[parent_index])!=NDS_OK) { destroy_object_graph(objects,count); free(objects); free_entries(entries,count); return NDS_ERR_IO; } }
+        else if (root) { destroy_object_graph(objects,count); free(objects); free_entries(entries,count); return NDS_ERR_IO; }
+        else root=objects[i];
         if (nds_instance_get_class(objects[i])==NDS_CLASS_PART || nds_instance_get_class(objects[i])==NDS_CLASS_SPAWN_POINT) {
-            nds_part_properties props; if (nds_part_get_properties(objects[i],&props)==NDS_OK) {
-                if(e->has_position)props.position=e->position; if(e->has_size)props.size=e->size; if(e->has_rotation)props.rotation=e->rotation; if(e->has_transparency)props.transparency=e->transparency; if(e->has_reflectance)props.reflectance=e->reflectance; if(e->has_color)props.color_rgba=e->color_rgba; if(e->has_anchored)props.anchored=e->anchored; if(e->has_can_collide)props.can_collide=e->can_collide; nds_part_set_properties(objects[i],&props);
-            }
+            nds_part_properties props; if (nds_part_get_properties(objects[i],&props)==NDS_OK) { if(e->has_position)props.position=e->position; if(e->has_size)props.size=e->size; if(e->has_rotation)props.rotation=e->rotation; if(e->has_transparency)props.transparency=e->transparency; if(e->has_reflectance)props.reflectance=e->reflectance; if(e->has_color)props.color_rgba=e->color_rgba; if(e->has_anchored)props.anchored=e->anchored; if(e->has_can_collide)props.can_collide=e->can_collide; nds_part_set_properties(objects[i],&props); }
             if (e->mesh_asset && nds_part_set_mesh_asset(objects[i], e->mesh_asset) != NDS_OK) { destroy_object_graph(objects,count); free(objects); free_entries(entries,count); return NDS_ERR_UNKNOWN; }
+            if (e->texture_asset && nds_part_set_texture_asset(objects[i], e->texture_asset) != NDS_OK) { destroy_object_graph(objects,count); free(objects); free_entries(entries,count); return NDS_ERR_UNKNOWN; }
         }
     }
     free(objects); free_entries(entries,count); if (!root) return NDS_ERR_IO; *out_root=root; return NDS_OK;
 }
-
 static nds_result resolve_meshes_recursive(nds_instance* node, nds_mesh_cache* cache)
 {
-    size_t i;
-    if (!node || !cache) return NDS_ERR_INVALID_ARG;
-    if (nds_instance_get_class(node) == NDS_CLASS_PART || nds_instance_get_class(node) == NDS_CLASS_SPAWN_POINT) {
-        const char* path = NULL;
-        if (nds_part_get_mesh_asset(node, &path) == NDS_OK && path && path[0]) {
-            const nds_mesh* mesh = NULL;
-            nds_result rc = nds_mesh_cache_get(cache, path, &mesh);
-            if (rc != NDS_OK) return rc;
-            if (nds_part_set_mesh(node, mesh) != NDS_OK) return NDS_ERR_UNKNOWN;
-        }
-    }
-    for (i=0;i<nds_instance_get_child_count(node);++i) {
-        nds_result rc = resolve_meshes_recursive(nds_instance_get_child(node,i), cache);
-        if (rc != NDS_OK) return rc;
-    }
+    size_t i; if (!node || !cache) return NDS_ERR_INVALID_ARG;
+    if (nds_instance_get_class(node) == NDS_CLASS_PART || nds_instance_get_class(node) == NDS_CLASS_SPAWN_POINT) { const char* path = NULL; if (nds_part_get_mesh_asset(node, &path) == NDS_OK && path && path[0]) { const nds_mesh* mesh = NULL; nds_result rc = nds_mesh_cache_get(cache, path, &mesh); if (rc != NDS_OK) return rc; if (nds_part_set_mesh(node, mesh) != NDS_OK) return NDS_ERR_UNKNOWN; } }
+    for (i=0;i<nds_instance_get_child_count(node);++i) { nds_result rc = resolve_meshes_recursive(nds_instance_get_child(node,i), cache); if (rc != NDS_OK) return rc; }
     return NDS_OK;
 }
-
-nds_result nds_map_resolve_meshes(nds_instance* root, nds_mesh_cache* cache)
+nds_result nds_map_resolve_meshes(nds_instance* root, nds_mesh_cache* cache) { return resolve_meshes_recursive(root, cache); }
+static nds_result resolve_textures_recursive(nds_instance* node, nds_texture_cache* cache)
 {
-    return resolve_meshes_recursive(root, cache);
+    size_t i; if (!node || !cache) return NDS_ERR_INVALID_ARG;
+    if (nds_instance_get_class(node) == NDS_CLASS_PART || nds_instance_get_class(node) == NDS_CLASS_SPAWN_POINT) { const char* path = NULL; if (nds_part_get_texture_asset(node, &path) == NDS_OK && path && path[0]) { const nds_texture* texture = NULL; nds_result rc = nds_texture_cache_get(cache, path, &texture); if (rc != NDS_OK) return rc; if (nds_part_set_texture(node, texture) != NDS_OK) return NDS_ERR_UNKNOWN; } }
+    for (i=0;i<nds_instance_get_child_count(node);++i) { nds_result rc = resolve_textures_recursive(nds_instance_get_child(node,i), cache); if (rc != NDS_OK) return rc; }
+    return NDS_OK;
 }
-
+nds_result nds_map_resolve_textures(nds_instance* root, nds_texture_cache* cache) { return resolve_textures_recursive(root, cache); }
 nds_result nds_map_load_json(const char* path, nds_instance** out_root)
 {
     FILE* f; long size; char* data; size_t read_count; nds_result result;
