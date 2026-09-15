@@ -22,15 +22,12 @@ def tag(node: ET.Element) -> str:
 def scalar(text: str) -> Any:
     text = text.strip()
     if text.lower() in {"true", "false"}: return text.lower() == "true"
-    try:
-        return float(text) if any(c in text for c in ".eE") else int(text)
-    except ValueError:
-        return text
+    try: return float(text) if any(c in text for c in ".eE") else int(text)
+    except ValueError: return text
 
 def property_value(node: ET.Element) -> Any:
     children = {tag(c): (c.text or "").strip() for c in node}
-    if "url" in children:
-        return children["url"]
+    if "url" in children: return children["url"]
     if set(children) >= {"X", "Y", "Z"}:
         try: return [float(children["X"]), float(children["Y"]), float(children["Z"])]
         except ValueError: pass
@@ -71,27 +68,21 @@ def walk(root: ET.Element) -> list[dict[str, Any]]:
 
 def normalize_instance(entry: dict[str, Any]) -> None:
     props = entry["properties"]
-    position = props.get("Position")
-    size = props.get("Size")
-    if isinstance(position, list) and len(position) == 3:
-        entry.setdefault("transform", {})["position"] = position
-    if isinstance(size, list) and len(size) == 3:
-        entry.setdefault("transform", {})["size"] = size
-    if "Rotation" in props and isinstance(props["Rotation"], list):
-        entry.setdefault("transform", {})["rotation"] = props["Rotation"]
-    part_fields = {"Transparency": "transparency", "Reflectance": "reflectance",
-                   "Anchored": "anchored", "CanCollide": "can_collide", "Color": "color"}
+    position, size = props.get("Position"), props.get("Size")
+    if isinstance(position, list) and len(position) == 3: entry.setdefault("transform", {})["position"] = position
+    if isinstance(size, list) and len(size) == 3: entry.setdefault("transform", {})["size"] = size
+    if "Rotation" in props and isinstance(props["Rotation"], list): entry.setdefault("transform", {})["rotation"] = props["Rotation"]
+    part_fields = {"Transparency": "transparency", "Reflectance": "reflectance", "Anchored": "anchored", "CanCollide": "can_collide", "Color": "color"}
     for source, target in part_fields.items():
         if source in props: entry.setdefault("part", {})[target] = props[source]
 
-    # Preserve source geometry/material references as project-owned metadata.
-    # The native loader may ignore these until the mesh/texture pipeline is ready.
+    # Keep mesh and texture references together in project-owned geometry metadata.
     mesh_id = props.get("MeshId")
-    if isinstance(mesh_id, str) and mesh_id.strip():
-        entry["geometry"] = {"type": "mesh", "mesh": mesh_id.strip()}
     texture_id = props.get("TextureID")
-    if isinstance(texture_id, str) and texture_id.strip():
-        entry.setdefault("material", {})["texture"] = texture_id.strip()
+    geometry: dict[str, Any] = {}
+    if isinstance(mesh_id, str) and mesh_id.strip(): geometry["type"] = "mesh"; geometry["mesh"] = mesh_id.strip()
+    if isinstance(texture_id, str) and texture_id.strip(): geometry["texture"] = texture_id.strip()
+    if geometry: entry["geometry"] = geometry
 
 def import_xml(source: Path, destination: Path) -> dict[str, Any]:
     try: root = ET.parse(source).getroot()
@@ -103,9 +94,9 @@ def import_xml(source: Path, destination: Path) -> dict[str, Any]:
     for i in instances: classes[i["class"]] = classes.get(i["class"], 0) + 1
     package = {"format": "nds-map", "version": 1,
                "source": {"filename": source.name, "extension": source.suffix.lower()},
-               "importer": {"name": "nds_import", "version": "0.4"},
-               "summary": {"instance_count": len(instances), "classes": classes,
-                           "unsupported_classes": unsupported}, "instances": instances}
+               "importer": {"name": "nds_import", "version": "0.5"},
+               "summary": {"instance_count": len(instances), "classes": classes, "unsupported_classes": unsupported},
+               "instances": instances}
     destination.parent.mkdir(parents=True, exist_ok=True)
     destination.write_text(json.dumps(package, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     return package
