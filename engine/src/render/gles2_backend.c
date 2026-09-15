@@ -1,6 +1,7 @@
 #include "gles2_backend.h"
 #include "engine/platform/gl_context.h"
 #include "engine/render/math.h"
+#include "engine/render/frustum.h"
 #include "engine/core/log.h"
 
 #include <GL/gl.h>
@@ -178,6 +179,34 @@ static void make_model(nds_mat4* out, const nds_draw_part* p)
     nds_mat4_mul(&rxy,&ry,&rx); nds_mat4_mul(&rxyz,&rz,&rxy); nds_mat4_mul(&rs,&rxyz,&s); nds_mat4_mul(out,&t,&rs);
 }
 
+static nds_aabb part_world_bounds(const nds_draw_part* p)
+{
+    nds_mat4 model;
+    nds_aabb bounds;
+    int xi, yi, zi;
+    int first = 1;
+    make_model(&model, p);
+    for (xi = 0; xi < 2; ++xi) {
+        const float x = xi ? 0.5f : -0.5f;
+        for (yi = 0; yi < 2; ++yi) {
+            const float y = yi ? 0.5f : -0.5f;
+            for (zi = 0; zi < 2; ++zi) {
+                const float z = zi ? 0.5f : -0.5f;
+                const float wx = model.m[0]*x + model.m[4]*y + model.m[8]*z + model.m[12];
+                const float wy = model.m[1]*x + model.m[5]*y + model.m[9]*z + model.m[13];
+                const float wz = model.m[2]*x + model.m[6]*y + model.m[10]*z + model.m[14];
+                if (first) { bounds.min.x=bounds.max.x=wx; bounds.min.y=bounds.max.y=wy; bounds.min.z=bounds.max.z=wz; first=0; }
+                else {
+                    if (wx < bounds.min.x) bounds.min.x=wx; if (wx > bounds.max.x) bounds.max.x=wx;
+                    if (wy < bounds.min.y) bounds.min.y=wy; if (wy > bounds.max.y) bounds.max.y=wy;
+                    if (wz < bounds.min.z) bounds.min.z=wz; if (wz > bounds.max.z) bounds.max.z=wz;
+                }
+            }
+        }
+    }
+    return bounds;
+}
+
 static nds_result upload_gpu_mesh(nds_gles2_backend* b, const nds_mesh* mesh, nds_gpu_mesh* out)
 {
     if (!b || !mesh || !mesh->vertices || !mesh->indices || !mesh->vertex_count || !mesh->index_count || !out)
@@ -235,11 +264,11 @@ nds_result nds_gles2_backend_create(nds_gles2_backend** out_backend, int width, 
     LOAD_GL(glVertexAttribPointer,PFNGLVERTEXATTRIBPOINTERPROC); LOAD_GL(glEnableVertexAttribArray,PFNGLENABLEVERTEXATTRIBARRAYPROC); LOAD_GL(glDisableVertexAttribArray,PFNGLDISABLEVERTEXATTRIBARRAYPROC);
     if(create_program(b)!=NDS_OK) goto fail;
     b->gl.glGenBuffers(1,&b->vertex_buffer); b->gl.glGenBuffers(1,&b->index_buffer);
-    glEnable(GL_DEPTH_TEST); glDepthFunc(GL_LEQUAL); glEnable(GL_BLEND); glBlendFunc(GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA); glDisable(GL_CULL_FACE);
-    nds_gles2_backend_resize(b,width,height); *out_backend=b; return NDS_OK;
+    glEnable(GL_DEPTH_TEST); glDepthFunc(GL_LEQUAL); glViewport(0,0,width,height);
+    *out_backend=b; return NDS_OK;
 fail:
-    if(b->program && b->gl.glDeleteProgram)b->gl.glDeleteProgram(b->program); if(b->vertex_buffer&&b->gl.glDeleteBuffers)b->gl.glDeleteBuffers(1,&b->vertex_buffer); if(b->index_buffer&&b->gl.glDeleteBuffers)b->gl.glDeleteBuffers(1,&b->index_buffer);
-    free(b); platform_gl_context_destroy(); return NDS_ERR_INIT_FAILED;
+    if(b){ if(b->gl.glDeleteBuffers){if(b->vertex_buffer)b->gl.glDeleteBuffers(1,&b->vertex_buffer);if(b->index_buffer)b->gl.glDeleteBuffers(1,&b->index_buffer);} if(b->gl.glDeleteProgram&&b->program)b->gl.glDeleteProgram(b->program); free(b); }
+    platform_gl_context_destroy(); return NDS_ERR_INIT_FAILED;
 }
 
 void nds_gles2_backend_destroy(nds_gles2_backend* b)
@@ -277,7 +306,10 @@ nds_result nds_gles2_backend_draw_parts(nds_gles2_backend* b,const nds_draw_list
         const nds_draw_part* p=&list->parts[i];
         float r,g,bl,a;
         size_t index_count;
+        nds_aabb bounds;
         if(!p->visible||p->transparency>=1.0f)continue;
+        bounds = part_world_bounds(p);
+        if (!nds_frustum_aabb_visible(&pv, &bounds)) continue;
         if (p->mesh && p->mesh->vertices && p->mesh->indices && p->mesh->vertex_count && p->mesh->index_count) {
             nds_gpu_mesh* gpu = get_gpu_mesh(b, p->mesh);
             if (!gpu) return NDS_ERR_UNKNOWN;
