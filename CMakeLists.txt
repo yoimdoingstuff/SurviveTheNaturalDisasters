@@ -44,6 +44,10 @@ add_library(engine_core STATIC ${ENGINE_CORE_SOURCES} ${ENGINE_PLATFORM_SOURCES}
 target_include_directories(engine_core PUBLIC engine/include engine/src/render)
 if(MSVC)
     target_compile_options(engine_core PRIVATE /W4)
+    # The Windows SDK OpenGL header expects the Win32 calling-convention
+    # macros to be defined before GL/gl.h is parsed. The renderer loads its
+    # modern GL entry points manually, so it does not otherwise need windows.h.
+    target_compile_definitions(engine_core PRIVATE APIENTRY=__stdcall WINGDIAPI=__declspec\(dllimport\))
 else()
     target_compile_options(engine_core PRIVATE -Wall -Wextra -Wpedantic)
 endif()
