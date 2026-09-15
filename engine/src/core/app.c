@@ -8,6 +8,7 @@
 #include "engine/scene/part.h"
 #include "engine/render/draw.h"
 #include "engine/render/gles2.h"
+#include "engine/render/camera.h"
 
 #include <string.h>
 
@@ -90,7 +91,9 @@ nds_result nds_app_run(const nds_app_options* options)
     nds_instance* scene = NULL;
     nds_draw_list draw_list;
     nds_gles2_renderer* renderer = NULL;
+    nds_camera camera;
     nds_draw_list_init(&draw_list);
+    nds_camera_init(&camera);
 
     rc = create_demo_scene(&scene);
     if (rc != NDS_OK) {
@@ -105,9 +108,9 @@ nds_result nds_app_run(const nds_app_options* options)
     nds_gles2_desc render_desc;
     render_desc.width = win_desc.width;
     render_desc.height = win_desc.height;
-    render_desc.fov_y_degrees = 70.0f;
-    render_desc.near_plane = 0.1f;
-    render_desc.far_plane = 2000.0f;
+    render_desc.fov_y_degrees = camera.fov_y_degrees;
+    render_desc.near_plane = camera.near_plane;
+    render_desc.far_plane = camera.far_plane;
     rc = nds_gles2_renderer_create(&renderer, &render_desc);
     if (rc != NDS_OK) {
         NDS_LOGE(TAG, "renderer creation failed (%d)", (int)rc);
@@ -120,6 +123,8 @@ nds_result nds_app_run(const nds_app_options* options)
     }
     NDS_LOGI(TAG, "OpenGL rendering backend active");
 
+    int render_width = win_desc.width;
+    int render_height = win_desc.height;
     nds_clock clock;
     nds_clock_init(&clock);
     nds_perf_reset();
@@ -133,10 +138,24 @@ nds_result nds_app_run(const nds_app_options* options)
         double dt = nds_clock_tick(&clock);
         (void)dt;
 
+        int window_width = 0;
+        int window_height = 0;
+        platform_get_window_size(&window_width, &window_height);
+        if (window_width > 0 && window_height > 0 &&
+            (window_width != render_width || window_height != render_height)) {
+            if (nds_gles2_renderer_resize(renderer, window_width, window_height) == NDS_OK) {
+                render_width = window_width;
+                render_height = window_height;
+            } else {
+                NDS_LOGE(TAG, "renderer resize failed (%dx%d)", window_width, window_height);
+                platform_request_quit();
+            }
+        }
+
         nds_draw_list_reset(&draw_list);
         rc = nds_draw_list_build_from_tree(&draw_list, scene);
         if (rc == NDS_OK) rc = nds_gles2_renderer_begin(renderer);
-        if (rc == NDS_OK) rc = nds_gles2_renderer_draw_parts(renderer, &draw_list);
+        if (rc == NDS_OK) rc = nds_gles2_renderer_draw_parts(renderer, &draw_list, &camera);
         if (rc == NDS_OK) rc = nds_gles2_renderer_end(renderer);
         if (rc != NDS_OK) {
             NDS_LOGE(TAG, "render failed (%d)", (int)rc);
