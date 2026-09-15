@@ -30,8 +30,8 @@ void nds_mat4_perspective(nds_mat4* out, float fov_y_degrees,
 
 void nds_mat4_translate(nds_mat4* out, float x, float y, float z)
 {
-    nds_mat4_identity(out);
     if (!out) return;
+    nds_mat4_identity(out);
     out->m[12] = x;
     out->m[13] = y;
     out->m[14] = z;
@@ -39,8 +39,8 @@ void nds_mat4_translate(nds_mat4* out, float x, float y, float z)
 
 void nds_mat4_scale(nds_mat4* out, float x, float y, float z)
 {
-    nds_mat4_identity(out);
     if (!out) return;
+    nds_mat4_identity(out);
     out->m[0] = x;
     out->m[5] = y;
     out->m[10] = z;
