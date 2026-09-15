@@ -2,11 +2,7 @@
  * Windows dev-build entry point.
  *
  * Deliberately a plain console-subsystem `main()` rather than WinMain for
- * now: it still creates a normal Win32 window (that works fine from a
- * console subsystem app), while keeping stdout log output visible in the
- * same terminal/CI job. A WINDOWS-subsystem entry point can be swapped in
- * later for the shipping build (see TODO.md Phase 13 "base release lock")
- * without touching engine/game code.
+ * now: it keeps stdout log output visible in the same terminal/CI job.
  */
 
 #include "engine/core/app.h"
@@ -18,9 +14,9 @@
 
 static void print_usage(const char* argv0)
 {
-    printf("usage: %s [--smoke-test [frames]]\n", argv0);
+    printf("usage: %s [--map path] [--smoke-test [frames]]\n", argv0);
+    printf("  --map path             render a specific .ndsmap.json package.\n");
     printf("  --smoke-test [frames]  run N frames (default 60) then exit automatically.\n");
-    printf("                         Used by CI to prove the runtime boots.\n");
 }
 
 int main(int argc, char** argv)
@@ -31,12 +27,22 @@ int main(int argc, char** argv)
     options.window_width = 1024;
     options.window_height = 768;
     options.config_path = "runtime_config.ini";
+    options.map_path = NULL;
     options.smoke_test_frames = 0;
 
     for (int i = 1; i < argc; ++i) {
         if (strcmp(argv[i], "--help") == 0 || strcmp(argv[i], "-h") == 0) {
             print_usage(argv[0]);
             return 0;
+        }
+        if (strcmp(argv[i], "--map") == 0) {
+            if (i + 1 >= argc || argv[i + 1][0] == '\0') {
+                fprintf(stderr, "--map requires a path\n");
+                print_usage(argv[0]);
+                return 2;
+            }
+            options.map_path = argv[++i];
+            continue;
         }
         if (strcmp(argv[i], "--smoke-test") == 0) {
             options.smoke_test_frames = 60;
@@ -47,7 +53,11 @@ int main(int argc, char** argv)
                     ++i;
                 }
             }
+            continue;
         }
+        fprintf(stderr, "unknown argument: %s\n", argv[i]);
+        print_usage(argv[0]);
+        return 2;
     }
 
     nds_result rc = nds_app_run(&options);
