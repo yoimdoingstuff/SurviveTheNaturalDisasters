@@ -20,7 +20,9 @@ set(ENGINE_CORE_SOURCES
     engine/src/scene/part.c
     engine/src/content/map_loader.c
     engine/src/render/draw.c
+    engine/src/render/math.c
     engine/src/render/renderer.c
+    engine/src/render/gles2.c
 )
 
 if(WIN32)
