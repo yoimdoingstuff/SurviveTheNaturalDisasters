@@ -16,12 +16,7 @@ class NdsImporterTests(unittest.TestCase):
 
     def run_importer(self, *args):
         script = Path(__file__).with_name("nds_import.py")
-        return subprocess.run(
-            [sys.executable, str(script), *args],
-            capture_output=True,
-            text=True,
-            check=True,
-        )
+        return subprocess.run([sys.executable, str(script), *args], capture_output=True, text=True, check=True)
 
     def test_xml_import(self):
         source = self.tmp_path / "place.rbxlx"
@@ -33,13 +28,10 @@ class NdsImporterTests(unittest.TestCase):
             '<Vector3 name="Position"><X>1</X><Y>2</Y><Z>3</Z></Vector3>'
             '<Vector3 name="Size"><X>10</X><Y>2</Y><Z>8</Z></Vector3>'
             '<float name="Transparency">0.25</float><bool name="Anchored">true</bool>'
-            '</Properties></Item></Item></Item></roblox>',
-            encoding="utf-8",
+            '</Properties></Item></Item></Item></roblox>', encoding="utf-8",
         )
-
         self.run_importer("import", str(source), "--output", str(output))
         package = json.loads(output.read_text(encoding="utf-8"))
-
         self.assertEqual(package["format"], "nds-map")
         self.assertEqual(package["summary"]["instance_count"], 3)
         island = package["instances"][2]
@@ -57,20 +49,16 @@ class NdsImporterTests(unittest.TestCase):
             '<Item class="MeshPart"><Properties><string name="Name">IslandMesh</string>'
             '<Content name="MeshId"><url>rbxassetid://123</url></Content>'
             '<Content name="TextureID"><url>rbxassetid://456</url></Content>'
-            '</Properties></Item></Item></roblox>',
-            encoding="utf-8",
+            '</Properties></Item></Item></roblox>', encoding="utf-8",
         )
-
         self.run_importer("import", str(source), "--output", str(output))
         package = json.loads(output.read_text(encoding="utf-8"))
         mesh = package["instances"][1]
-        self.assertEqual(mesh["geometry"], {"type": "mesh", "mesh": "rbxassetid://123"})
-        self.assertEqual(mesh["material"]["texture"], "rbxassetid://456")
+        self.assertEqual(mesh["geometry"], {"type": "mesh", "mesh": "rbxassetid://123", "texture": "rbxassetid://456"})
 
     def test_scan_detects_binary(self):
         (self.tmp_path / "map.rbxl").write_bytes(b"binary")
         (self.tmp_path / "map.rbxlx").write_text("<roblox />", encoding="utf-8")
-
         result = self.run_importer("scan", str(self.tmp_path))
         report = json.loads(result.stdout)
         self.assertEqual(report["counts"]["binary_detected"], 1)
