@@ -4,21 +4,19 @@ Offline development/import/packaging utilities.
 
 Nothing in this directory should require Roblox online services at runtime.
 
-
 ## Early map importer
 
-The tools directory should contain a standalone importer that can inspect locally available Natural Disaster Survival source files, import supported place/model data, and emit the project's internal map package.
-
-The importer should be useful before the engine is feature-complete. Prefer a staged import with diagnostics over an all-or-nothing conversion.
+`map_importer/nds_import.py` is a dependency-free first pass for locally obtained Roblox place/model files. It deliberately starts with the XML formats (`.rbxlx` / `.rbxmx`) so the importer can provide useful map data without pulling a large legacy parser into the runtime.
 
 Suggested commands:
 
 ```text
-nds-import scan <source>
-nds-import inspect <source>
-nds-import map <source> --out <package>
-nds-import validate <package>
-nds-import report <package>
+python tools/map_importer/nds_import.py scan <source>
+python tools/map_importer/nds_import.py import <source.rbxlx> --output data/maps/example/map.json
 ```
 
-Do not automatically copy source files into distributable release bundles.
+`scan` discovers `.rbxlx`, `.rbxmx`, `.rbxl`, and `.rbxm` files and reports binary formats as detected-but-not-yet-importable. `import` converts supported XML instances into the project-owned `nds-map` JSON format and records unsupported classes instead of failing the whole import.
+
+The importer is intentionally repeatable: re-running it against the same source replaces the generated package. Source files remain outside generated/build output and are never copied automatically into distributable releases.
+
+The importer is a development tool, not a guarantee that every historical Roblox property or asset format is supported. Unsupported data is preserved where possible as instance properties and reported for later compatibility work.
