@@ -34,7 +34,7 @@ static int test_mesh_resolution(void)
 
 static int test_texture_resolution(void)
 {
-    const char* json = "{\"format\":\"nds-map\",\"version\":1,\"instances\":[{\"id\":0,\"class\":\"DataModel\",\"name\":\"Game\",\"parent\":null},{\"id\":1,\"class\":\"Part\",\"name\":\"Textured\",\"parent\":0,\"geometry\":{\"texture\":\"game/content/textures/fixture.rgba8\"}}]}";
+    const char* json = "{\"format\":\"nds-map\",\"version\":1,\"instances\":[{\"id\":0,\"class\":\"DataModel\",\"name\":\"Game\",\"parent\":null},{\"id\":1,\"class\":\"Part\",\"name\":\"Textured\",\"parent\":0,\"geometry\":{\"texture\":\"game/content/textures/test.ndstex\"}}]}";
     nds_instance* root = NULL; nds_instance* part; nds_texture_cache* cache = NULL; const nds_texture* texture = NULL;
     if (nds_map_load_json_text(json, &root) != NDS_OK || !root) return 1;
     part = nds_instance_find_child(root, "Textured"); if (!part) { nds_instance_destroy(root); return 2; }
