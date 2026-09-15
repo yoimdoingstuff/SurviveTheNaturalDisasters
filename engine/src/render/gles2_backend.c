@@ -71,12 +71,23 @@ typedef struct nds_gl_api {
     PFNGLDISABLEVERTEXATTRIBARRAYPROC glDisableVertexAttribArray;
 } nds_gl_api;
 
+typedef struct nds_gpu_mesh {
+    const nds_mesh* source;
+    GLuint vertex_buffer;
+    GLuint index_buffer;
+    size_t index_count;
+} nds_gpu_mesh;
+
+#define NDS_GPU_MESH_CACHE_CAPACITY 128u
+
 struct nds_gles2_backend {
     int width, height;
     float fov_y_degrees, near_plane, far_plane;
     GLuint program, vertex_buffer, index_buffer;
     GLint position_attrib, mvp_uniform, color_uniform;
     nds_gl_api gl;
+    nds_gpu_mesh mesh_cache[NDS_GPU_MESH_CACHE_CAPACITY];
+    size_t mesh_cache_count;
 };
 
 static const GLfloat cube_vertices[] = {
@@ -167,6 +178,42 @@ static void make_model(nds_mat4* out, const nds_draw_part* p)
     nds_mat4_mul(&rxy,&ry,&rx); nds_mat4_mul(&rxyz,&rz,&rxy); nds_mat4_mul(&rs,&rxyz,&s); nds_mat4_mul(out,&t,&rs);
 }
 
+static nds_result upload_gpu_mesh(nds_gles2_backend* b, const nds_mesh* mesh, nds_gpu_mesh* out)
+{
+    if (!b || !mesh || !mesh->vertices || !mesh->indices || !mesh->vertex_count || !mesh->index_count || !out)
+        return NDS_ERR_INVALID_ARG;
+    b->gl.glGenBuffers(1, &out->vertex_buffer);
+    b->gl.glGenBuffers(1, &out->index_buffer);
+    if (!out->vertex_buffer || !out->index_buffer) return NDS_ERR_UNKNOWN;
+    b->gl.glBindBuffer(GL_ARRAY_BUFFER, out->vertex_buffer);
+    b->gl.glBufferData(GL_ARRAY_BUFFER, (GLsizeiptr)(mesh->vertex_count * sizeof(*mesh->vertices)), mesh->vertices, GL_STATIC_DRAW);
+    b->gl.glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, out->index_buffer);
+    b->gl.glBufferData(GL_ELEMENT_ARRAY_BUFFER, (GLsizeiptr)(mesh->index_count * sizeof(*mesh->indices)), mesh->indices, GL_STATIC_DRAW);
+    out->source = mesh;
+    out->index_count = mesh->index_count;
+    return NDS_OK;
+}
+
+static nds_gpu_mesh* get_gpu_mesh(nds_gles2_backend* b, const nds_mesh* mesh)
+{
+    size_t i;
+    nds_gpu_mesh* entry;
+    if (!b || !mesh) return NULL;
+    for (i = 0; i < b->mesh_cache_count; ++i)
+        if (b->mesh_cache[i].source == mesh) return &b->mesh_cache[i];
+    if (b->mesh_cache_count >= NDS_GPU_MESH_CACHE_CAPACITY) return NULL;
+    entry = &b->mesh_cache[b->mesh_cache_count];
+    *entry = (nds_gpu_mesh){0};
+    if (upload_gpu_mesh(b, mesh, entry) != NDS_OK) {
+        if (entry->vertex_buffer) b->gl.glDeleteBuffers(1, &entry->vertex_buffer);
+        if (entry->index_buffer) b->gl.glDeleteBuffers(1, &entry->index_buffer);
+        *entry = (nds_gpu_mesh){0};
+        return NULL;
+    }
+    ++b->mesh_cache_count;
+    return entry;
+}
+
 #define LOAD_GL(name, type) do { b->gl.name=(type)platform_gl_get_proc_address(#name); if(!b->gl.name) goto fail; } while(0)
 
 nds_result nds_gles2_backend_create(nds_gles2_backend** out_backend, int width, int height,
@@ -197,7 +244,18 @@ fail:
 
 void nds_gles2_backend_destroy(nds_gles2_backend* b)
 {
-    if(!b)return; if(b->gl.glDeleteProgram&&b->program)b->gl.glDeleteProgram(b->program); if(b->gl.glDeleteBuffers){if(b->vertex_buffer)b->gl.glDeleteBuffers(1,&b->vertex_buffer);if(b->index_buffer)b->gl.glDeleteBuffers(1,&b->index_buffer);} free(b); platform_gl_context_destroy();
+    size_t i;
+    if(!b)return;
+    if (b->gl.glDeleteBuffers) {
+        for (i=0;i<b->mesh_cache_count;++i) {
+            if (b->mesh_cache[i].vertex_buffer) b->gl.glDeleteBuffers(1,&b->mesh_cache[i].vertex_buffer);
+            if (b->mesh_cache[i].index_buffer) b->gl.glDeleteBuffers(1,&b->mesh_cache[i].index_buffer);
+        }
+        if(b->vertex_buffer)b->gl.glDeleteBuffers(1,&b->vertex_buffer);
+        if(b->index_buffer)b->gl.glDeleteBuffers(1,&b->index_buffer);
+    }
+    if(b->gl.glDeleteProgram&&b->program)b->gl.glDeleteProgram(b->program);
+    free(b); platform_gl_context_destroy();
 }
 
 nds_result nds_gles2_backend_resize(nds_gles2_backend* b,int width,int height)
@@ -221,11 +279,11 @@ nds_result nds_gles2_backend_draw_parts(nds_gles2_backend* b,const nds_draw_list
         size_t index_count;
         if(!p->visible||p->transparency>=1.0f)continue;
         if (p->mesh && p->mesh->vertices && p->mesh->indices && p->mesh->vertex_count && p->mesh->index_count) {
-            b->gl.glBindBuffer(GL_ARRAY_BUFFER,b->vertex_buffer);
-            b->gl.glBufferData(GL_ARRAY_BUFFER,(GLsizeiptr)(p->mesh->vertex_count * sizeof(*p->mesh->vertices)),p->mesh->vertices,GL_STATIC_DRAW);
-            b->gl.glBindBuffer(GL_ELEMENT_ARRAY_BUFFER,b->index_buffer);
-            b->gl.glBufferData(GL_ELEMENT_ARRAY_BUFFER,(GLsizeiptr)(p->mesh->index_count * sizeof(*p->mesh->indices)),p->mesh->indices,GL_STATIC_DRAW);
-            index_count = p->mesh->index_count;
+            nds_gpu_mesh* gpu = get_gpu_mesh(b, p->mesh);
+            if (!gpu) return NDS_ERR_UNKNOWN;
+            b->gl.glBindBuffer(GL_ARRAY_BUFFER,gpu->vertex_buffer);
+            b->gl.glBindBuffer(GL_ELEMENT_ARRAY_BUFFER,gpu->index_buffer);
+            index_count = gpu->index_count;
         } else {
             b->gl.glBindBuffer(GL_ARRAY_BUFFER,b->vertex_buffer);
             b->gl.glBufferData(GL_ARRAY_BUFFER,(GLsizeiptr)sizeof(cube_vertices),cube_vertices,GL_STATIC_DRAW);
