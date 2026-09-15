@@ -46,17 +46,22 @@ tests/        Runtime and gameplay tests
 ## Development order
 
 1. Native runtime boot + renderer
-2. Scene/Instance model
-3. Physics + characters + camera
-4. Luau/Lua gameplay runtime
-5. Base gameplay loop
-6. Menu screen
-7. Local lobby creation and server settings
-8. Offline single-player polish
-9. LAN/local multiplayer
-10. Cross-platform desktop/mobile validation
-11. Legacy iOS optimization and packaging
-12. Android 4.0+ and Windows release validation
-13. Base release lock
-14. Post-completion updates such as cosmetics and gear
-15. Mod system and sandboxed content extensions
+2. Early NDS map/content importer and first imported map
+3. Scene/Instance model
+4. Physics + characters + camera
+5. Luau/Lua gameplay runtime
+6. Base gameplay loop
+7. Menu screen
+8. Local lobby creation and server settings
+9. Offline single-player polish
+10. LAN/local multiplayer
+11. Cross-platform desktop/mobile validation
+12. Legacy iOS optimization and packaging
+13. Android 4.0+ and Windows release validation
+14. Base release lock
+15. Post-completion updates such as cosmetics and gear
+16. Mod system and sandboxed content extensions
+
+## Development acceleration
+
+Before implementing a large Roblox-style subsystem from scratch, check `docs/ENGINE_REUSE.md`. The project may selectively reuse compatible open-source Roblox recreations or use them as implementation references, while keeping all game code behind project-owned interfaces.

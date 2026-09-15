@@ -101,3 +101,16 @@ Do not promote update-only features into the critical path for the base release.
 - Gameplay-affecting mods must participate in multiplayer compatibility checks.
 - A broken mod must fail without taking down the base game.
 - Mod APIs must be versioned and documented before being treated as stable.
+
+
+## Existing engine reuse
+
+Before implementing a major Roblox-style subsystem from scratch:
+
+1. Check `docs/ENGINE_REUSE.md`.
+2. Search existing open-source Roblox-like projects for reusable code or reference implementations.
+3. Verify the exact license and provenance before copying or vendoring anything.
+4. Keep reused code behind project-owned interfaces/adapters.
+5. Test compatibility on Windows first, then iOS 8, iOS 6/CoolBooter, and Android 4.0+ as applicable.
+
+Do not copy proprietary Roblox code or assets, and do not assume that a project being open-source makes every associated asset or dependency reusable.

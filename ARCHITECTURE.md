@@ -30,6 +30,26 @@ The engine implements only the platform/runtime capabilities required by the tar
 +----------------------------------------------------------+
 ```
 
+## 2.5 Existing-engine reuse strategy
+
+The project should reuse open-source Roblox-like technology where it saves substantial work, but should not become tightly coupled to a single recreation.
+
+Candidate projects such as OpenRBLX, RNR's Not Roblox, Gargantuan, and Novalume may be used as reference implementations, parser/runtime sources, or selective dependencies after license and platform review.
+
+Use adapters so the game depends on project-owned interfaces rather than third-party internals:
+
+```text
+Game
+  -> Compatibility API
+      -> Engine interfaces
+          -> Native subsystem
+          -> Reused open-source subsystem
+```
+
+Priority should be given to components that are expensive to reproduce and relatively isolated, such as place/model parsing, Instance trees, script runtime integration, or selected compatibility APIs. Rendering and platform code must remain replaceable so the project can target OpenGL ES 2 on legacy devices.
+
+The full decision process and candidate checklist are documented in `docs/ENGINE_REUSE.md`.
+
 ## 3. Execution model
 
 ### Offline single-player
@@ -142,7 +162,27 @@ Avoid allocating temporary objects per callback on every frame.
 
 Provide sound playback, looping ambient audio, volume groups, and basic 3D positional audio where performance allows.
 
-### 4.7 Asset manager
+### 4.7 Early map/content import pipeline
+
+Map importing is an early milestone, not a post-game-content task. The project should be able to ingest locally available source game files and produce a project-owned runtime package before the full engine is complete. This allows the real base maps to drive engine requirements instead of guessing at them.
+
+Import flow:
+
+```text
+Local source files
+  -> source scanner
+  -> place/model importer
+  -> compatibility/normalization layer
+  -> project-owned map package
+  -> runtime asset database
+  -> playable imported map
+```
+
+The importer should initially prioritize the parts most useful for Natural Disaster Survival: map geometry, materials/textures, collision, spawn locations, basic metadata, and scripts/data that can be converted into the project's compatibility API. Unsupported Roblox-specific features should be logged and represented with placeholders instead of preventing the entire map from importing.
+
+The development repository should keep source game files separate from generated content. Distribution of extracted proprietary assets is not assumed; the build system should support a clean separation between local development imports and redistributable project files.
+
+## 4.8 Asset manager
 
 Load packaged assets from a local bundle.
 

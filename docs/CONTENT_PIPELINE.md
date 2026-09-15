@@ -17,6 +17,26 @@ content/
   config/
 ```
 
+## Early map import
+
+Map import is intentionally one of the first practical milestones. The goal is to get the original/base Natural Disaster Survival map content into the runtime format early, so engine work can be driven by real content requirements.
+
+Recommended workflow:
+
+```text
+local NDS source files
+  -> inspect/index
+  -> import
+  -> normalize
+  -> project map package
+  -> test in desktop runtime
+  -> optimize for iPad/Android
+```
+
+The importer should be incremental. A map can become playable even when some advanced source features are unsupported. Missing features should fall back to placeholder geometry, default materials, or compatibility shims and be reported in an import log.
+
+Keep source files in a separate local-only workspace when they cannot legally be redistributed. The generated project format should contain only content the project is permitted to ship.
+
 ## Maps
 
 Maps should contain:
