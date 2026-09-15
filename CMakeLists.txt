@@ -18,6 +18,7 @@ set(ENGINE_CORE_SOURCES
     engine/src/core/app.c
     engine/src/game/player.c
     engine/src/game/round.c
+    engine/src/game/disaster.c
     engine/src/scene/instance.c
     engine/src/scene/instance_child_alias.c
     engine/src/scene/part.c
@@ -114,3 +115,7 @@ set_tests_properties(nds_texture_cache_test PROPERTIES WORKING_DIRECTORY "${CMAK
 add_executable(nds_round_test engine/tests/round_test.c)
 target_link_libraries(nds_round_test PRIVATE engine_core ${ENGINE_PLATFORM_LIBS})
 add_test(NAME nds_round_test COMMAND nds_round_test)
+
+add_executable(nds_disaster_test engine/tests/disaster_test.c)
+target_link_libraries(nds_disaster_test PRIVATE engine_core ${ENGINE_PLATFORM_LIBS})
+add_test(NAME nds_disaster_test COMMAND nds_disaster_test)
