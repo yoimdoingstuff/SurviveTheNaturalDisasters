@@ -6,6 +6,7 @@
 #include "engine/core/memstat.h"
 #include "engine/scene/instance.h"
 #include "engine/scene/part.h"
+#include "engine/content/map_loader.h"
 #include "engine/render/draw.h"
 #include "engine/render/gles2.h"
 #include "engine/render/camera.h"
@@ -13,6 +14,7 @@
 #include <string.h>
 
 static const char* TAG = "app";
+static const char* DEFAULT_MAP_PATH = "game/content/maps/render_test.ndsmap.json";
 
 static nds_result create_demo_scene(nds_instance** out_root)
 {
@@ -58,6 +60,22 @@ static nds_result create_demo_scene(nds_instance** out_root)
     return NDS_OK;
 }
 
+static nds_result load_startup_scene(nds_instance** out_root)
+{
+    nds_result rc;
+    if (!out_root) return NDS_ERR_INVALID_ARG;
+    *out_root = NULL;
+
+    rc = nds_map_load_json(DEFAULT_MAP_PATH, out_root);
+    if (rc == NDS_OK) {
+        NDS_LOGI(TAG, "loaded project map: %s", DEFAULT_MAP_PATH);
+        return NDS_OK;
+    }
+
+    NDS_LOGW(TAG, "project map '%s' unavailable (%d), using built-in demo scene", DEFAULT_MAP_PATH, (int)rc);
+    return create_demo_scene(out_root);
+}
+
 nds_result nds_app_run(const nds_app_options* options)
 {
     if (!options) return NDS_ERR_INVALID_ARG;
@@ -95,9 +113,9 @@ nds_result nds_app_run(const nds_app_options* options)
     nds_draw_list_init(&draw_list);
     nds_camera_init(&camera);
 
-    rc = create_demo_scene(&scene);
+    rc = load_startup_scene(&scene);
     if (rc != NDS_OK) {
-        NDS_LOGE(TAG, "demo scene creation failed (%d)", (int)rc);
+        NDS_LOGE(TAG, "scene creation failed (%d)", (int)rc);
         nds_draw_list_destroy(&draw_list);
         platform_destroy_window();
         nds_config_destroy(cfg);
