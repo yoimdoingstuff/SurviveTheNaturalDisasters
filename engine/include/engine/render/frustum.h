@@ -3,6 +3,7 @@
 
 #include "engine/core/types.h"
 #include "engine/render/math.h"
+#include "engine/scene/part.h"
 
 #ifdef __cplusplus
 extern "C" {
