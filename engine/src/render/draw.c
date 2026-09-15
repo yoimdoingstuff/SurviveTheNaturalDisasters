@@ -56,6 +56,7 @@ nds_result nds_draw_list_add_part(nds_draw_list* list, const nds_instance* insta
     draw->transparency = props.transparency;
     draw->color_rgba = props.color_rgba;
     draw->visible = props.visible;
+    draw->mesh = props.mesh;
     return NDS_OK;
 }
 
