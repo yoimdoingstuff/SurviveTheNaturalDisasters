@@ -14,15 +14,17 @@ static nds_instance* make_part(nds_instance* root, const char* name, nds_vec3 po
 {
     nds_instance* p = nds_instance_create(NDS_CLASS_PART, name);
     nds_part_properties props = {0};
-    CHECK(p != NULL);
+    if (!p) return NULL;
     props.position = pos;
     props.size = size;
     props.anchored = (uint8_t)anchored;
     props.can_collide = 1;
     props.visible = 1;
     props.color_rgba = 0xffffffffu;
-    CHECK(nds_part_set_properties(p, &props) == NDS_OK);
-    CHECK(nds_instance_set_parent(p, root) == NDS_OK);
+    if (nds_part_set_properties(p, &props) != NDS_OK || nds_instance_set_parent(p, root) != NDS_OK) {
+        nds_instance_destroy(p);
+        return NULL;
+    }
     return p;
 }
 
@@ -33,6 +35,7 @@ int main(void)
     nds_instance *floor, *box, *far_box;
     nds_vec3 pos;
     nds_physics_body* body;
+    int frame;
 
     CHECK(root != NULL);
     floor = make_part(root, "Floor", (nds_vec3){0,-1,0}, (nds_vec3){10,2,10}, 1);
@@ -45,9 +48,10 @@ int main(void)
     body = nds_physics_find_body(&world, box);
     CHECK(body != NULL && body->dynamic);
 
-    /* Falling body lands on the static floor and the broad phase ignores the
-     * unrelated body hundreds of units away. */
-    CHECK(nds_physics_update(&world, 1.0f) == NDS_OK);
+    /* Simulate roughly one second at a time step that the engine actually
+     * accepts. The body's bottom should settle on the floor near y=0.5. */
+    for (frame = 0; frame < 60; ++frame)
+        CHECK(nds_physics_update(&world, 1.0f / 60.0f) == NDS_OK);
     CHECK(nds_part_get_position(box, &pos) == NDS_OK);
     CHECK(pos.y > 0.0f && pos.y < 2.0f);
     CHECK(body->grounded);
