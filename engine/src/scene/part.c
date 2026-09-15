@@ -15,6 +15,7 @@ static nds_part_state* make_default(void)
     s->properties.anchored = 1;
     s->properties.can_collide = 1;
     s->properties.visible = 1;
+    s->properties.mesh = NULL;
     return s;
 }
 static nds_part_state* ensure_state(nds_instance* i)
@@ -65,4 +66,17 @@ nds_result nds_part_get_size(const nds_instance* i, nds_vec3* out)
     nds_part_properties p;
     if (!out || nds_part_get_properties(i, &p) != NDS_OK) return NDS_ERR_INVALID_ARG;
     *out = p.size; return NDS_OK;
+}
+nds_result nds_part_set_mesh(nds_instance* i, const nds_mesh* mesh)
+{
+    nds_part_state* s = ensure_state(i); if (!s) return NDS_ERR_INVALID_ARG;
+    s->properties.mesh = mesh;
+    return NDS_OK;
+}
+nds_result nds_part_get_mesh(const nds_instance* i, const nds_mesh** out_mesh)
+{
+    nds_part_properties p;
+    if (!out_mesh || nds_part_get_properties(i, &p) != NDS_OK) return NDS_ERR_INVALID_ARG;
+    *out_mesh = p.mesh;
+    return NDS_OK;
 }
