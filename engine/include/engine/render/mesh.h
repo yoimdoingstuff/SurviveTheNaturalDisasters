@@ -9,6 +9,7 @@ extern "C" {
 
 typedef struct nds_mesh_vertex {
     float x, y, z;
+    float u, v;
 } nds_mesh_vertex;
 
 typedef struct nds_mesh {
@@ -18,8 +19,7 @@ typedef struct nds_mesh {
     size_t index_count;
 } nds_mesh;
 
-/* Small, deterministic text format intended as an intermediate asset format.
- * It is deliberately limited to 16-bit indices for GLES2-era hardware. */
+/* Vertex lines accept x y z and optionally u v. Missing UVs default to 0,0. */
 nds_result nds_mesh_load(const char* path, nds_mesh* out_mesh);
 nds_result nds_mesh_load_text(const char* text, nds_mesh* out_mesh);
 void nds_mesh_destroy(nds_mesh* mesh);
