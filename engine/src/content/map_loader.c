@@ -71,12 +71,12 @@ static int skip_array(parser* p)
 static int skip_object(parser* p)
 {
     char* key; ws(p); if (!ch(p, '{')) return 0; ws(p); if (ch(p, '}')) return 1;
-    for (;;) { key = json_string(p); free(key); if (!key || !ch(p, ':') || !skip_value(p)) return 0; ws(p); if (ch(p, '}')) return 1; if (!ch(p, ',')) return 0; }
+    for (;;) { key = json_string(p); if (!key || !ch(p, ':') || !skip_value(p)) { free(key); return 0; } free(key); ws(p); if (ch(p, '}')) return 1; if (!ch(p, ',')) return 0; }
 }
 static int skip_value(parser* p)
 {
     char c; ws(p); if (p->p >= p->end) return 0; c = *p->p;
-    if (c == '"') { char* s = json_string(p); free(s); return s != NULL; }
+    if (c == '"') { char* s = json_string(p); int ok = s != NULL; free(s); return ok; }
     if (c == '{') return skip_object(p); if (c == '[') return skip_array(p);
     if (c == 't') return literal(p, "true"); if (c == 'f') return literal(p, "false"); if (c == 'n') return literal(p, "null");
     { double v; return number(p, &v); }
@@ -103,7 +103,7 @@ static nds_instance_class class_id(const char* name)
 
 static int parse_entry(parser* p, map_entry* e)
 {
-    char* key; char* str; double v; int first = 1;
+    char* key; double v;
     memset(e, 0, sizeof(*e)); e->id = -1; e->parent = -1;
     if (!ch(p, '{')) return 0; ws(p); if (ch(p, '}')) return 1;
     for (;;) {
@@ -116,9 +116,9 @@ static int parse_entry(parser* p, map_entry* e)
             if (!ch(p, '{')) { free(key); return 0; } ws(p);
             if (!ch(p, '}')) for (;;) {
                 char* tk = json_string(p); if (!tk || !ch(p, ':')) { free(tk); free(key); return 0; }
-                if (strcmp(tk, "position") == 0) e->has_position = vector3(p, &e->position);
-                else if (strcmp(tk, "size") == 0) e->has_size = vector3(p, &e->size);
-                else if (strcmp(tk, "rotation") == 0) e->has_rotation = vector3(p, &e->rotation);
+                if (strcmp(tk, "position") == 0) { if (!vector3(p, &e->position)) { free(tk); free(key); return 0; } e->has_position = 1; }
+                else if (strcmp(tk, "size") == 0) { if (!vector3(p, &e->size)) { free(tk); free(key); return 0; } e->has_size = 1; }
+                else if (strcmp(tk, "rotation") == 0) { if (!vector3(p, &e->rotation)) { free(tk); free(key); return 0; } e->has_rotation = 1; }
                 else if (!skip_value(p)) { free(tk); free(key); return 0; }
                 free(tk); ws(p); if (ch(p, '}')) break; if (!ch(p, ',')) { free(key); return 0; }
             }
@@ -126,16 +126,16 @@ static int parse_entry(parser* p, map_entry* e)
             if (!ch(p, '{')) { free(key); return 0; } ws(p);
             if (!ch(p, '}')) for (;;) {
                 char* pk = json_string(p); if (!pk || !ch(p, ':')) { free(pk); free(key); return 0; }
-                if (strcmp(pk, "transparency") == 0 && number(p, &v)) { e->transparency=(float)v; e->has_transparency=1; }
-                else if (strcmp(pk, "reflectance") == 0 && number(p, &v)) { e->reflectance=(float)v; e->has_reflectance=1; }
+                if (strcmp(pk, "transparency") == 0) { if (!number(p, &v)) { free(pk); free(key); return 0; } e->transparency=(float)v; e->has_transparency=1; }
+                else if (strcmp(pk, "reflectance") == 0) { if (!number(p, &v)) { free(pk); free(key); return 0; } e->reflectance=(float)v; e->has_reflectance=1; }
                 else if (strcmp(pk, "anchored") == 0) { ws(p); if (literal(p,"true")) { e->anchored=1; e->has_anchored=1; } else if (literal(p,"false")) e->has_anchored=1; else { free(pk); free(key); return 0; } }
                 else if (strcmp(pk, "can_collide") == 0) { ws(p); if (literal(p,"true")) { e->can_collide=1; e->has_can_collide=1; } else if (literal(p,"false")) e->has_can_collide=1; else { free(pk); free(key); return 0; } }
-                else if (strcmp(pk, "color") == 0) { nds_vec3 c; if (!vector3(p,&c)) { free(pk); free(key); return 0; } e->color_rgba=((uint32_t)c.x<<24)|((uint32_t)c.y<<16)|((uint32_t)c.z<<8)|255u; e->has_color=1; }
+                else if (strcmp(pk, "color") == 0) { nds_vec3 c; if (!vector3(p,&c)) { free(pk); free(key); return 0; } if(c.x>=0.0f&&c.x<=1.0f&&c.y>=0.0f&&c.y<=1.0f&&c.z>=0.0f&&c.z<=1.0f){c.x*=255.0f;c.y*=255.0f;c.z*=255.0f;} e->color_rgba=((uint32_t)c.x<<24)|((uint32_t)c.y<<16)|((uint32_t)c.z<<8)|255u; e->has_color=1; }
                 else if (!skip_value(p)) { free(pk); free(key); return 0; }
                 free(pk); ws(p); if (ch(p, '}')) break; if (!ch(p, ',')) { free(key); return 0; }
             }
         } else if (!skip_value(p)) { free(key); return 0; }
-        free(key); ws(p); if (ch(p, '}')) return 1; if (!ch(p, ',')) return 0; first = 0; (void)first;
+        free(key); ws(p); if (ch(p, '}')) return 1; if (!ch(p, ',')) return 0;
     }
 }
 
@@ -163,7 +163,7 @@ nds_result nds_map_load_json_text(const char* text, nds_instance** out_root)
     for (i=0;i<count;++i) { objects[i]=nds_instance_create(class_id(entries[i].class_name?entries[i].class_name:"Instance"),entries[i].name?entries[i].name:"Instance"); if (!objects[i]) { size_t j; for(j=0;j<i;++j) nds_instance_destroy(objects[j]); free(objects); free_entries(entries,count); return NDS_ERR_UNKNOWN; } }
     for (i=0;i<count;++i) {
         map_entry* e=&entries[i];
-        if (e->parent>=0 && (size_t)e->parent<count) { if (nds_instance_set_parent(objects[i],objects[e->parent])!=NDS_OK) { size_t j; for(j=0;j<count;++j) nds_instance_destroy(objects[j]); free(objects); free_entries(entries,count); return NDS_ERR_UNKNOWN; } }
+        if (e->parent>=0 && (size_t)e->parent<count) { if (nds_instance_set_parent(objects[i],objects[e->parent])!=NDS_OK) { size_t j; for(j=0;j<count;++j) if(objects[j] && nds_instance_get_parent(objects[j])==NULL) nds_instance_destroy(objects[j]); free(objects); free_entries(entries,count); return NDS_ERR_UNKNOWN; } }
         else if (!root) root=objects[i];
         if (nds_instance_get_class(objects[i])==NDS_CLASS_PART || nds_instance_get_class(objects[i])==NDS_CLASS_SPAWN_POINT) {
             nds_part_properties props; if (nds_part_get_properties(objects[i],&props)==NDS_OK) {
