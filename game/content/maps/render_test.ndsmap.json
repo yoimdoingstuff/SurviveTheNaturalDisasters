@@ -9,7 +9,7 @@
       "name": "RenderTestMap",
       "parent": null,
       "properties": {},
-      "children": [101, 102, 103, 104]
+      "children": [101, 102, 103, 104, 105]
     },
     {
       "id": 101,
@@ -54,6 +54,18 @@
       "children": [],
       "transform": {"position": [0, 0.5, -4], "size": [3, 1, 2], "rotation": [10, 30, 5]},
       "part": {"transparency": 0, "reflectance": 0, "anchored": true, "can_collide": true, "color": [0.85, 0.68, 0.28]}
+    },
+    {
+      "id": 105,
+      "referent": null,
+      "class": "MeshPart",
+      "name": "TriangleMesh",
+      "parent": 100,
+      "properties": {},
+      "children": [],
+      "transform": {"position": [0, 1.5, 3], "size": [3, 3, 3], "rotation": [0, 0, 0]},
+      "part": {"transparency": 0, "reflectance": 0, "anchored": true, "can_collide": true, "color": [0.95, 0.75, 0.25]},
+      "geometry": {"type": "mesh", "mesh": "game/content/meshes/triangle.ndsmesh"}
     }
   ]
 }
