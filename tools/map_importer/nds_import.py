@@ -98,6 +98,22 @@ def flatten_special_meshes(instances: list[dict[str, Any]]) -> None:
             target["type"] = "mesh"; target["mesh"] = geometry["mesh"]
         if "texture" in geometry and "texture" not in target: target["texture"] = geometry["texture"]
 
+def flatten_surface_textures(instances: list[dict[str, Any]]) -> None:
+    """Promote Decal/Texture asset references onto their parent for the first renderer."""
+    surface_classes = {"Decal", "Texture"}
+    part_classes = {"Part", "WedgePart", "CornerWedgePart", "TrussPart", "SpawnLocation", "MeshPart"}
+    for entry in instances:
+        if entry["class"] not in surface_classes: continue
+        parent_id = entry.get("parent")
+        if not isinstance(parent_id, int) or parent_id < 0 or parent_id >= len(instances): continue
+        parent = instances[parent_id]
+        if parent["class"] not in part_classes: continue
+        props = entry.get("properties", {})
+        texture_id = props.get("Texture", props.get("TextureID", props.get("TextureId")))
+        if not isinstance(texture_id, str) or not texture_id.strip(): continue
+        geometry = parent.setdefault("geometry", {})
+        if "texture" not in geometry: geometry["texture"] = texture_id.strip()
+
 def collect_asset_dependencies(instances: list[dict[str, Any]]) -> dict[str, list[str]]:
     """Collect deterministic, deduplicated mesh/texture references for later conversion."""
     meshes: set[str] = set()
@@ -118,11 +134,12 @@ def import_xml(source: Path, destination: Path) -> dict[str, Any]:
     unsupported = sorted({i["class"] for i in instances if i["class"] not in SUPPORTED_CLASSES})
     for i in instances: normalize_instance(i)
     flatten_special_meshes(instances)
+    flatten_surface_textures(instances)
     classes: dict[str, int] = {}
     for i in instances: classes[i["class"]] = classes.get(i["class"], 0) + 1
     package = {"format": "nds-map", "version": 1,
                "source": {"filename": source.name, "extension": source.suffix.lower()},
-               "importer": {"name": "nds_import", "version": "0.7"},
+               "importer": {"name": "nds_import", "version": "0.8"},
                "summary": {"instance_count": len(instances), "classes": classes, "unsupported_classes": unsupported},
                "assets": collect_asset_dependencies(instances),
                "instances": instances}
