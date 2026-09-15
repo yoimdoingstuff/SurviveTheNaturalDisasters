@@ -264,7 +264,12 @@ nds_result nds_gles2_backend_create(nds_gles2_backend** out_backend, int width, 
     LOAD_GL(glVertexAttribPointer,PFNGLVERTEXATTRIBPOINTERPROC); LOAD_GL(glEnableVertexAttribArray,PFNGLENABLEVERTEXATTRIBARRAYPROC); LOAD_GL(glDisableVertexAttribArray,PFNGLDISABLEVERTEXATTRIBARRAYPROC);
     if(create_program(b)!=NDS_OK) goto fail;
     b->gl.glGenBuffers(1,&b->vertex_buffer); b->gl.glGenBuffers(1,&b->index_buffer);
-    glEnable(GL_DEPTH_TEST); glDepthFunc(GL_LEQUAL); glViewport(0,0,width,height);
+    if (!b->vertex_buffer || !b->index_buffer) goto fail;
+    b->gl.glBindBuffer(GL_ARRAY_BUFFER,b->vertex_buffer);
+    b->gl.glBufferData(GL_ARRAY_BUFFER,(GLsizeiptr)sizeof(cube_vertices),cube_vertices,GL_STATIC_DRAW);
+    b->gl.glBindBuffer(GL_ELEMENT_ARRAY_BUFFER,b->index_buffer);
+    b->gl.glBufferData(GL_ELEMENT_ARRAY_BUFFER,(GLsizeiptr)sizeof(cube_indices),cube_indices,GL_STATIC_DRAW);
+    glEnable(GL_DEPTH_TEST); glDepthFunc(GL_LEQUAL); glDisable(GL_BLEND); glDepthMask(GL_TRUE); glViewport(0,0,width,height);
     *out_backend=b; return NDS_OK;
 fail:
     if(b){ if(b->gl.glDeleteBuffers){if(b->vertex_buffer)b->gl.glDeleteBuffers(1,&b->vertex_buffer);if(b->index_buffer)b->gl.glDeleteBuffers(1,&b->index_buffer);} if(b->gl.glDeleteProgram&&b->program)b->gl.glDeleteProgram(b->program); free(b); }
@@ -291,7 +296,7 @@ nds_result nds_gles2_backend_resize(nds_gles2_backend* b,int width,int height)
 { if(!b||width<=0||height<=0)return NDS_ERR_INVALID_ARG; b->width=width;b->height=height;glViewport(0,0,width,height);return NDS_OK; }
 
 nds_result nds_gles2_backend_begin(nds_gles2_backend* b)
-{ if(!b)return NDS_ERR_INVALID_ARG; if(platform_gl_context_make_current()!=NDS_OK)return NDS_ERR_INIT_FAILED; glClearColor(0.055f,0.075f,0.10f,1);glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);b->gl.glUseProgram(b->program);return NDS_OK; }
+{ if(!b)return NDS_ERR_INVALID_ARG; if(platform_gl_context_make_current()!=NDS_OK)return NDS_ERR_INIT_FAILED; glClearColor(0.055f,0.075f,0.10f,1);glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);glDisable(GL_BLEND);glDepthMask(GL_TRUE);b->gl.glUseProgram(b->program);return NDS_OK; }
 
 nds_result nds_gles2_backend_draw_parts(nds_gles2_backend* b,const nds_draw_list* list,const nds_camera* camera)
 {
@@ -302,33 +307,43 @@ nds_result nds_gles2_backend_draw_parts(nds_gles2_backend* b,const nds_draw_list
     nds_camera_view_matrix(camera,&view);
     nds_mat4_mul(&pv,&projection,&view);
     b->gl.glEnableVertexAttribArray((GLuint)b->position_attrib);
-    for(size_t i=0;i<list->count;++i){
-        const nds_draw_part* p=&list->parts[i];
-        float r,g,bl,a;
-        size_t index_count;
-        nds_aabb bounds;
-        if(!p->visible||p->transparency>=1.0f)continue;
-        bounds = part_world_bounds(p);
-        if (!nds_frustum_aabb_visible(&pv, &bounds)) continue;
-        if (p->mesh && p->mesh->vertices && p->mesh->indices && p->mesh->vertex_count && p->mesh->index_count) {
-            nds_gpu_mesh* gpu = get_gpu_mesh(b, p->mesh);
-            if (!gpu) return NDS_ERR_UNKNOWN;
-            b->gl.glBindBuffer(GL_ARRAY_BUFFER,gpu->vertex_buffer);
-            b->gl.glBindBuffer(GL_ELEMENT_ARRAY_BUFFER,gpu->index_buffer);
-            index_count = gpu->index_count;
+    for (int pass = 0; pass < 2; ++pass) {
+        const int transparent_pass = pass != 0;
+        if (transparent_pass) {
+            glEnable(GL_BLEND);
+            glBlendFunc(GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA);
+            glDepthMask(GL_FALSE);
         } else {
-            b->gl.glBindBuffer(GL_ARRAY_BUFFER,b->vertex_buffer);
-            b->gl.glBufferData(GL_ARRAY_BUFFER,(GLsizeiptr)sizeof(cube_vertices),cube_vertices,GL_STATIC_DRAW);
-            b->gl.glBindBuffer(GL_ELEMENT_ARRAY_BUFFER,b->index_buffer);
-            b->gl.glBufferData(GL_ELEMENT_ARRAY_BUFFER,(GLsizeiptr)sizeof(cube_indices),cube_indices,GL_STATIC_DRAW);
-            index_count = sizeof(cube_indices)/sizeof(cube_indices[0]);
+            glDisable(GL_BLEND);
+            glDepthMask(GL_TRUE);
         }
-        b->gl.glVertexAttribPointer((GLuint)b->position_attrib,3,GL_FLOAT,GL_FALSE,0,(const void*)0);
-        r=(float)((p->color_rgba>>24)&0xff)/255.0f; g=(float)((p->color_rgba>>16)&0xff)/255.0f; bl=(float)((p->color_rgba>>8)&0xff)/255.0f; a=(float)(p->color_rgba&0xff)/255.0f; a*=1.0f-p->transparency;
-        make_model(&model,p); nds_mat4_mul(&mvp,&pv,&model); b->gl.glUniformMatrix4fv(b->mvp_uniform,1,GL_FALSE,mvp.m); b->gl.glUniform4f(b->color_uniform,r,g,bl,a);
-        glDrawElements(GL_TRIANGLES,(GLsizei)index_count,GL_UNSIGNED_SHORT,(const void*)0);
+        for(size_t i=0;i<list->count;++i){
+            const nds_draw_part* p=&list->parts[i];
+            float r,g,bl,a;
+            size_t index_count;
+            nds_aabb bounds;
+            if(!p->visible||p->transparency>=1.0f)continue;
+            if (transparent_pass != (p->transparency > 0.0f)) continue;
+            bounds = part_world_bounds(p);
+            if (!nds_frustum_aabb_visible(&pv, &bounds)) continue;
+            if (p->mesh && p->mesh->vertices && p->mesh->indices && p->mesh->vertex_count && p->mesh->index_count) {
+                nds_gpu_mesh* gpu = get_gpu_mesh(b, p->mesh);
+                if (!gpu) return NDS_ERR_UNKNOWN;
+                b->gl.glBindBuffer(GL_ARRAY_BUFFER,gpu->vertex_buffer);
+                b->gl.glBindBuffer(GL_ELEMENT_ARRAY_BUFFER,gpu->index_buffer);
+                index_count = gpu->index_count;
+            } else {
+                b->gl.glBindBuffer(GL_ARRAY_BUFFER,b->vertex_buffer);
+                b->gl.glBindBuffer(GL_ELEMENT_ARRAY_BUFFER,b->index_buffer);
+                index_count = sizeof(cube_indices)/sizeof(cube_indices[0]);
+            }
+            b->gl.glVertexAttribPointer((GLuint)b->position_attrib,3,GL_FLOAT,GL_FALSE,0,(const void*)0);
+            r=(float)((p->color_rgba>>24)&0xff)/255.0f; g=(float)((p->color_rgba>>16)&0xff)/255.0f; bl=(float)((p->color_rgba>>8)&0xff)/255.0f; a=(float)(p->color_rgba&0xff)/255.0f; a*=1.0f-p->transparency;
+            make_model(&model,p); nds_mat4_mul(&mvp,&pv,&model); b->gl.glUniformMatrix4fv(b->mvp_uniform,1,GL_FALSE,mvp.m); b->gl.glUniform4f(b->color_uniform,r,g,bl,a);
+            glDrawElements(GL_TRIANGLES,(GLsizei)index_count,GL_UNSIGNED_SHORT,(const void*)0);
+        }
     }
-    b->gl.glDisableVertexAttribArray((GLuint)b->position_attrib); return NDS_OK;
+    glDisable(GL_BLEND); glDepthMask(GL_TRUE); b->gl.glDisableVertexAttribArray((GLuint)b->position_attrib); return NDS_OK;
 }
 
 nds_result nds_gles2_backend_end(nds_gles2_backend* b)
