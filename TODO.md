@@ -64,10 +64,10 @@ Legend:
 - [~] OpenGL ES 2 renderer <!-- GLES2-style shader/VBO path is implemented; native GLES2 platform contexts remain pending -->
 - [ ] Shader/material system compatible with GLES2
 - [ ] Texture loading
-- [~] Mesh loading <!-- NDSMESH parser, fixture, map-reference resolution, CPU cache, draw-data propagation, and GPU buffer caching are implemented; source mesh conversion remains -->
 - [ ] Basic lighting
 - [x] Camera <!-- backend-neutral camera matrices added -->
-- [~] Frustum culling <!-- backend-neutral conservative AABB clip test and unit coverage added; draw-list integration remains -->
+- [x] Frustum culling <!-- conservative Part bounds are tested against the camera view-projection before GPU submission -->
+- [~] Mesh loading <!-- NDSMESH parser, fixture, map-reference resolution, CPU cache, draw-data propagation, and GPU buffer caching are implemented; source mesh conversion remains -->
 - [~] Transparency <!-- Part transparency reaches renderer; alpha blending policy still pending -->
 - [ ] UI rendering
 - [ ] A6X performance test scene
