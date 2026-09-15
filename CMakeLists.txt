@@ -25,6 +25,7 @@ set(ENGINE_CORE_SOURCES
     engine/src/render/draw.c
     engine/src/render/math.c
     engine/src/render/frustum.c
+    engine/src/render/camera.c
     engine/src/render/mesh.c
     engine/src/render/mesh_cache.c
     engine/src/render/texture.c
