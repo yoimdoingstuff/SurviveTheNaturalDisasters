@@ -19,7 +19,7 @@ jobs:
         run: python -m unittest discover -s tools/map_importer -p "test_*.py" -v
 
       - name: Configure (CMake)
-        run: cmake -S . -B build -G "Visual Studio 18 2026" -A x64
+        run: cmake -S . -B build -G "Visual Studio 18 2026" -A x64 -DNDS_ENABLE_ASAN=ON
 
       - name: Build (Release)
         run: cmake --build build --config Release
@@ -30,9 +30,6 @@ jobs:
       # Proves the runtime actually boots (window + main loop + shutdown),
       # not just that it compiles. --smoke-test makes it exit on its own
       # after 60 frames instead of waiting for input.
-      #
-      # GitHub's current Windows runner image uses Visual Studio 2026,
-      # so keep the generator aligned with the installed toolchain.
       - name: Smoke test the runtime
         shell: cmd
         run: build\Release\nds_runtime.exe --smoke-test 60
