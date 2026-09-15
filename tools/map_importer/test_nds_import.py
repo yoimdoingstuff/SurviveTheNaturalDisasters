@@ -49,6 +49,24 @@ class NdsImporterTests(unittest.TestCase):
         self.assertEqual(island["part"]["transparency"], 0.25)
         self.assertIs(island["part"]["anchored"], True)
 
+    def test_mesh_and_texture_references_are_preserved(self):
+        source = self.tmp_path / "mesh.rbxlx"
+        output = self.tmp_path / "mesh.json"
+        source.write_text(
+            '<roblox version="4"><Item class="DataModel"><Properties><string name="Name">Place</string></Properties>'
+            '<Item class="MeshPart"><Properties><string name="Name">IslandMesh</string>'
+            '<Content name="MeshId"><url>rbxassetid://123</url></Content>'
+            '<Content name="TextureID"><url>rbxassetid://456</url></Content>'
+            '</Properties></Item></Item></roblox>',
+            encoding="utf-8",
+        )
+
+        self.run_importer("import", str(source), "--output", str(output))
+        package = json.loads(output.read_text(encoding="utf-8"))
+        mesh = package["instances"][1]
+        self.assertEqual(mesh["geometry"], {"type": "mesh", "mesh": "rbxassetid://123"})
+        self.assertEqual(mesh["material"]["texture"], "rbxassetid://456")
+
     def test_scan_detects_binary(self):
         (self.tmp_path / "map.rbxl").write_bytes(b"binary")
         (self.tmp_path / "map.rbxlx").write_text("<roblox />", encoding="utf-8")
