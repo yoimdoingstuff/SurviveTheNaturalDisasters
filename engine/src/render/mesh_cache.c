@@ -2,6 +2,7 @@
 
 #include <stdlib.h>
 #include <string.h>
+#include <stdio.h>
 
 typedef struct nds_mesh_cache_entry {
     char* path;
@@ -32,6 +33,25 @@ static void destroy_entry(nds_mesh_cache_entry* entry)
     free(entry->path);
     entry->path = NULL;
     nds_mesh_destroy(&entry->mesh);
+}
+
+static nds_result load_mesh_with_project_fallback(const char* path, nds_mesh* out_mesh)
+{
+    nds_result rc;
+    char fallback[4096];
+    const char* marker;
+
+    rc = nds_mesh_load(path, out_mesh);
+    if (rc == NDS_OK || path[0] == '/' || (path[0] != '\0' && path[1] == ':'))
+        return rc;
+
+    marker = strstr(path, "game/");
+    if (!marker || marker == path)
+        return rc;
+
+    if (snprintf(fallback, sizeof(fallback), "%s", marker) < 0)
+        return rc;
+    return nds_mesh_load(fallback, out_mesh);
 }
 
 nds_result nds_mesh_cache_create(nds_mesh_cache** out_cache, size_t capacity)
@@ -86,7 +106,7 @@ nds_result nds_mesh_cache_get(nds_mesh_cache* cache, const char* path,
     entry = &cache->entries[cache->count];
     entry->path = copy_string(path);
     if (!entry->path) return NDS_ERR_UNKNOWN;
-    if (nds_mesh_load(path, &entry->mesh) != NDS_OK) {
+    if (load_mesh_with_project_fallback(path, &entry->mesh) != NDS_OK) {
         free(entry->path);
         entry->path = NULL;
         return NDS_ERR_IO;
