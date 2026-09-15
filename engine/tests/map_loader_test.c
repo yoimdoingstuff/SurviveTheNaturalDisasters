@@ -3,7 +3,7 @@
 
 #include <stdio.h>
 
-int main(void)
+static int test_valid_map(void)
 {
     const char* json =
         "{\"format\":\"nds-map\",\"version\":1,\"instances\":["
@@ -22,6 +22,45 @@ int main(void)
     if (props.transparency != 0.25f || props.reflectance != 0.1f || !props.anchored || !props.can_collide) { nds_instance_destroy(root); return 5; }
     if (props.color_rgba != 0x7f3fffFFu && props.color_rgba != 0x7f40ffffu) { nds_instance_destroy(root); return 6; }
     nds_instance_destroy(root);
+    return 0;
+}
+
+static int test_rejects_invalid_parent(void)
+{
+    const char* json =
+        "{\"format\":\"nds-map\",\"version\":1,\"instances\":["
+        "{\"id\":10,\"class\":\"DataModel\",\"name\":\"Game\",\"parent\":null},"
+        "{\"id\":20,\"class\":\"Part\",\"name\":\"Broken\",\"parent\":999}]}";
+    nds_instance* root = NULL;
+    return nds_map_load_json_text(json, &root) == NDS_OK || root != NULL;
+}
+
+static int test_rejects_duplicate_id(void)
+{
+    const char* json =
+        "{\"format\":\"nds-map\",\"version\":1,\"instances\":["
+        "{\"id\":0,\"class\":\"DataModel\",\"name\":\"Game\",\"parent\":null},"
+        "{\"id\":0,\"class\":\"Part\",\"name\":\"Duplicate\",\"parent\":0}]}";
+    nds_instance* root = NULL;
+    return nds_map_load_json_text(json, &root) == NDS_OK || root != NULL;
+}
+
+static int test_rejects_trailing_data(void)
+{
+    const char* json =
+        "{\"format\":\"nds-map\",\"version\":1,\"instances\":["
+        "{\"id\":0,\"class\":\"DataModel\",\"name\":\"Game\",\"parent\":null}]} garbage";
+    nds_instance* root = NULL;
+    return nds_map_load_json_text(json, &root) == NDS_OK || root != NULL;
+}
+
+int main(void)
+{
+    int rc;
+    rc = test_valid_map(); if (rc) return rc;
+    if (test_rejects_invalid_parent()) return 10;
+    if (test_rejects_duplicate_id()) return 11;
+    if (test_rejects_trailing_data()) return 12;
     puts("map loader test passed");
     return 0;
 }
