@@ -22,6 +22,7 @@ set(ENGINE_CORE_SOURCES
     engine/src/content/map_loader.c
     engine/src/render/draw.c
     engine/src/render/math.c
+    engine/src/render/frustum.c
     engine/src/render/mesh.c
     engine/src/render/mesh_cache.c
     engine/src/render/renderer.c
@@ -81,6 +82,10 @@ set_tests_properties(nds_draw_list_test PROPERTIES WORKING_DIRECTORY "${CMAKE_SO
 add_executable(nds_render_math_test engine/tests/render_math_test.c)
 target_link_libraries(nds_render_math_test PRIVATE engine_core ${ENGINE_PLATFORM_LIBS})
 add_test(NAME nds_render_math_test COMMAND nds_render_math_test)
+
+add_executable(nds_frustum_test engine/tests/frustum_test.c)
+target_link_libraries(nds_frustum_test PRIVATE engine_core ${ENGINE_PLATFORM_LIBS})
+add_test(NAME nds_frustum_test COMMAND nds_frustum_test)
 
 add_executable(nds_mesh_test engine/tests/mesh_test.c)
 target_link_libraries(nds_mesh_test PRIVATE engine_core ${ENGINE_PLATFORM_LIBS})
