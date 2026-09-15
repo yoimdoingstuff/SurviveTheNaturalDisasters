@@ -10,6 +10,8 @@ struct nds_instance {
     nds_instance** children;
     size_t child_count;
     size_t child_capacity;
+    void* user_data;
+    nds_instance_user_data_destructor user_data_destructor;
 };
 
 static char* copy_string(const char* value)
@@ -77,7 +79,6 @@ nds_result nds_instance_set_parent(nds_instance* instance, nds_instance* parent)
     if (!instance) return NDS_ERR_INVALID_ARG;
     if (parent == instance) return NDS_ERR_INVALID_ARG;
 
-    /* Prevent cycles in the object tree. */
     cursor = parent;
     while (cursor) {
         if (cursor == instance) return NDS_ERR_INVALID_ARG;
@@ -114,6 +115,8 @@ void nds_instance_destroy(nds_instance* instance)
         nds_instance_destroy(instance->children[i - 1]);
     }
     free(instance->children);
+    if (instance->user_data_destructor && instance->user_data)
+        instance->user_data_destructor(instance->user_data);
     free(instance->name);
     free(instance);
 }
@@ -188,7 +191,6 @@ nds_instance* nds_instance_find_path(const nds_instance* root, const char* path)
     if (!root || !path || !*path) return current;
     start = path;
 
-    /* A path may start with the root name. */
     end = strchr(start, '.');
     length = end ? (size_t)(end - start) : strlen(start);
     segment = (char*)malloc(length + 1);
@@ -214,4 +216,20 @@ nds_instance* nds_instance_find_path(const nds_instance* root, const char* path)
         start = end + 1;
     }
     return current;
+}
+
+void* nds_instance_get_user_data(const nds_instance* instance)
+{
+    return instance ? instance->user_data : NULL;
+}
+
+nds_result nds_instance_set_user_data(nds_instance* instance, void* user_data,
+                                      nds_instance_user_data_destructor destructor)
+{
+    if (!instance) return NDS_ERR_INVALID_ARG;
+    if (instance->user_data_destructor && instance->user_data)
+        instance->user_data_destructor(instance->user_data);
+    instance->user_data = user_data;
+    instance->user_data_destructor = destructor;
+    return NDS_OK;
 }
