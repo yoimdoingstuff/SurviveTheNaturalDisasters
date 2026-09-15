@@ -78,11 +78,32 @@ def normalize_instance(entry: dict[str, Any]) -> None:
 
     # Keep mesh and texture references together in project-owned geometry metadata.
     mesh_id = props.get("MeshId")
-    texture_id = props.get("TextureID")
+    texture_id = props.get("TextureID", props.get("TextureId"))
     geometry: dict[str, Any] = {}
     if isinstance(mesh_id, str) and mesh_id.strip(): geometry["type"] = "mesh"; geometry["mesh"] = mesh_id.strip()
     if isinstance(texture_id, str) and texture_id.strip(): geometry["texture"] = texture_id.strip()
     if geometry: entry["geometry"] = geometry
+
+def flatten_special_meshes(instances: list[dict[str, Any]]) -> None:
+    """Copy SpecialMesh asset references onto their parent Part for native rendering."""
+    for entry in instances:
+        if entry["class"] != "SpecialMesh":
+            continue
+        parent_id = entry.get("parent")
+        if not isinstance(parent_id, int) or parent_id < 0 or parent_id >= len(instances):
+            continue
+        parent = instances[parent_id]
+        if parent["class"] not in {"Part", "WedgePart", "CornerWedgePart", "TrussPart", "SpawnLocation"}:
+            continue
+        geometry = entry.get("geometry")
+        if not isinstance(geometry, dict):
+            continue
+        target = parent.setdefault("geometry", {})
+        if "mesh" in geometry and "mesh" not in target:
+            target["type"] = "mesh"
+            target["mesh"] = geometry["mesh"]
+        if "texture" in geometry and "texture" not in target:
+            target["texture"] = geometry["texture"]
 
 def import_xml(source: Path, destination: Path) -> dict[str, Any]:
     try: root = ET.parse(source).getroot()
@@ -90,11 +111,12 @@ def import_xml(source: Path, destination: Path) -> dict[str, Any]:
     instances = walk(root)
     unsupported = sorted({i["class"] for i in instances if i["class"] not in SUPPORTED_CLASSES})
     for i in instances: normalize_instance(i)
+    flatten_special_meshes(instances)
     classes: dict[str, int] = {}
     for i in instances: classes[i["class"]] = classes.get(i["class"], 0) + 1
     package = {"format": "nds-map", "version": 1,
                "source": {"filename": source.name, "extension": source.suffix.lower()},
-               "importer": {"name": "nds_import", "version": "0.5"},
+               "importer": {"name": "nds_import", "version": "0.6"},
                "summary": {"instance_count": len(instances), "classes": classes, "unsupported_classes": unsupported},
                "instances": instances}
     destination.parent.mkdir(parents=True, exist_ok=True)
