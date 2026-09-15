@@ -61,10 +61,10 @@ Legend:
 ## Phase 2 - Rendering
 
 - [x] Define renderer interface and scene draw data
-- [~] OpenGL ES 2 renderer <!-- backend lifecycle + first Windows OpenGL vertical slice; true GLES2 shader/VBO path still pending -->
+- [~] OpenGL ES 2 renderer <!-- GLES2-style shader/VBO path is implemented; native GLES2 platform contexts remain pending -->
 - [ ] Shader/material system compatible with GLES2
 - [ ] Texture loading
-- [~] Mesh loading <!-- NDSMESH parser, fixture, draw-data propagation, and GLES2 upload/draw path added; asset caching and real imported meshes still pending -->
+- [~] Mesh loading <!-- NDSMESH parser, fixture, map-reference resolution, CPU cache, draw-data propagation, and GPU buffer caching are implemented; source mesh conversion remains -->
 - [ ] Basic lighting
 - [x] Camera <!-- backend-neutral camera matrices added -->
 - [ ] Frustum culling
@@ -73,7 +73,106 @@ Legend:
 - [ ] A6X performance test scene
 - [ ] iOS 8 renderer validation
 - [ ] Android GLES2 renderer validation
-- [~] Windows OpenGL renderer validation <!-- native WGL context and first Part cube draw added; local runtime validation still required -->
+- [~] Windows OpenGL renderer validation <!-- native WGL context and first Part/mesh draw added; local runtime validation still required -->
 - [ ] iOS 6 renderer compatibility test
 
 ## Phase 3 - Scene/Instance model
+
+- [ ] Complete Instance property/value containers
+- [ ] Script-visible hierarchy API
+- [ ] Attributes/tags compatibility layer
+- [ ] Collection/service lookup API
+- [ ] Scene serialization/deserialization validation
+
+## Phase 4 - Physics and characters
+
+- [ ] Physics backend selection and legacy build test
+- [ ] Static collision
+- [ ] Dynamic bodies
+- [ ] Gravity
+- [ ] Character controller
+- [ ] Spawn/respawn
+- [ ] Basic humanoid state
+- [ ] Raycasts
+- [ ] Touch/triggers
+- [ ] Debris interaction
+
+## Phase 5 - Script/runtime
+
+- [ ] Select and integrate Luau/Lua runtime
+- [ ] Script scheduler
+- [ ] Shared/server/client script contexts
+- [ ] Narrow gameplay API
+- [ ] Protected script execution
+- [ ] Runtime errors/logging
+- [ ] Script asset loading
+
+## Phase 6 - Natural Disaster Survival gameplay
+
+- [ ] Round state machine
+- [ ] Map rotation
+- [ ] Disaster selection
+- [ ] Disaster implementations
+- [ ] Survival/death handling
+- [ ] Respawn flow
+- [ ] Player state
+- [ ] Win/survival rewards
+- [ ] Round countdown/intermission
+- [ ] Spawn selection
+
+## Phase 7 - Menu and local lobby
+
+- [ ] Main menu
+- [ ] Offline play flow
+- [ ] Create local lobby
+- [ ] Join local lobby
+- [ ] Lobby name setting
+- [ ] Player limit setting
+- [ ] Map pool setting
+- [ ] Disaster selection setting
+- [ ] Round length setting
+- [ ] Visibility setting
+- [ ] Settings/credits screens
+
+## Phase 8 - Local multiplayer
+
+- [ ] Host-authoritative simulation
+- [ ] Loopback transport
+- [ ] LAN transport
+- [ ] Player/input synchronization
+- [ ] Round/disaster synchronization
+- [ ] Spawn/death synchronization
+- [ ] Basic disconnect handling
+- [ ] Bluetooth transport investigation
+
+## Phase 9 - Legacy/mobile/platform validation
+
+- [ ] iOS 8 packaging
+- [ ] iOS 6/CoolBooter feasibility
+- [ ] Android 4.0+ packaging
+- [ ] Windows release packaging
+- [ ] iPad 4/A6X performance pass
+- [ ] Low-memory/content quality tiers
+- [ ] Device input validation
+- [ ] Lifecycle/suspend/resume handling
+
+## Phase 10 - Base release completion
+
+- [ ] Full offline gameplay loop
+- [ ] Menu + offline play
+- [ ] Local lobby creation/join
+- [ ] Server/lobby settings
+- [ ] LAN multiplayer
+- [ ] iOS 8 validation
+- [ ] Performance target met on iPad 4/A6X
+- [ ] Base content validation
+- [ ] Release packaging
+
+## Phase 11 - Post-completion updates
+
+- [ ] Cosmetics/inventory
+- [ ] Progression expansion
+- [ ] Gear/items
+- [ ] Additional lobby options
+- [ ] Additional maps/disasters
+- [ ] Mod package system
