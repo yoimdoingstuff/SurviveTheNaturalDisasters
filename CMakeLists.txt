@@ -16,6 +16,7 @@ set(ENGINE_CORE_SOURCES
     engine/src/core/clock.c
     engine/src/core/memstat.c
     engine/src/core/app.c
+    engine/src/game/player.c
     engine/src/scene/instance.c
     engine/src/scene/instance_child_alias.c
     engine/src/scene/part.c
