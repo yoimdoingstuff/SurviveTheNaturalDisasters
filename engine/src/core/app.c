@@ -9,6 +9,8 @@
 #include "engine/render/draw.h"
 #include "engine/render/gles2.h"
 
+#include <string.h>
+
 static const char* TAG = "app";
 
 static nds_result create_demo_scene(nds_instance** out_root)
@@ -58,7 +60,6 @@ static nds_result create_demo_scene(nds_instance** out_root)
 nds_result nds_app_run(const nds_app_options* options)
 {
     if (!options) return NDS_ERR_INVALID_ARG;
-
     nds_result rc = platform_init();
     if (rc != NDS_OK) {
         NDS_LOGE(TAG, "platform_init failed (%d)", (int)rc);
@@ -86,7 +87,6 @@ nds_result nds_app_run(const nds_app_options* options)
     }
 
     NDS_LOGI(TAG, "boot ok: window %dx%d", win_desc.width, win_desc.height);
-
     nds_instance* scene = NULL;
     nds_draw_list draw_list;
     nds_gles2_renderer* renderer = NULL;
@@ -129,7 +129,6 @@ nds_result nds_app_run(const nds_app_options* options)
     while (!platform_quit_requested()) {
         if (platform_poll_events() != 0) platform_request_quit();
         if (platform_is_key_down(PLATFORM_KEY_ESCAPE)) platform_request_quit();
-
         nds_perf_begin_frame();
         double dt = nds_clock_tick(&clock);
         (void)dt;
