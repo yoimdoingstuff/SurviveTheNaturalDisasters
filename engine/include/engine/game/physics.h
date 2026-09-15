@@ -25,6 +25,10 @@ typedef struct nds_physics_world {
     nds_physics_body* bodies;
     size_t count;
     size_t capacity;
+    /* Reused broad-phase index storage. Keeping this beside the world avoids
+     * per-frame heap churn on legacy/mobile targets. */
+    size_t* broadphase_order;
+    size_t broadphase_capacity;
     nds_vec3 gravity;
     float max_dt;
 } nds_physics_world;
