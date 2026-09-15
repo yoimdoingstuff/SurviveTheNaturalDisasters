@@ -3,6 +3,7 @@
 
 #include "engine/core/types.h"
 #include "engine/render/draw.h"
+#include "engine/render/camera.h"
 
 typedef struct nds_gles2_backend nds_gles2_backend;
 
@@ -11,7 +12,9 @@ nds_result nds_gles2_backend_create(nds_gles2_backend** out_backend, int width, 
 void nds_gles2_backend_destroy(nds_gles2_backend* backend);
 nds_result nds_gles2_backend_resize(nds_gles2_backend* backend, int width, int height);
 nds_result nds_gles2_backend_begin(nds_gles2_backend* backend);
-nds_result nds_gles2_backend_draw_parts(nds_gles2_backend* backend, const nds_draw_list* list);
+nds_result nds_gles2_backend_draw_parts(nds_gles2_backend* backend,
+                                        const nds_draw_list* list,
+                                        const nds_camera* camera);
 nds_result nds_gles2_backend_end(nds_gles2_backend* backend);
 
 #endif
