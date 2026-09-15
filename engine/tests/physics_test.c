@@ -56,7 +56,9 @@ int main(void)
     CHECK(pos.y > 0.0f && pos.y < 2.0f);
     CHECK(body->grounded);
     CHECK(nds_part_get_position(far_box, &pos) == NDS_OK);
-    CHECK(pos.y > 0.0f);
+    /* FarBox is intentionally outside the floor's X/Z bounds, so it should
+     * fall rather than being kept above the floor by a false collision. */
+    CHECK(pos.y < 0.0f);
 
     /* A vertical impulse must leave the contact cleanly. */
     CHECK(nds_physics_apply_impulse(&world, box, (nds_vec3){0,10,0}) == NDS_OK);
