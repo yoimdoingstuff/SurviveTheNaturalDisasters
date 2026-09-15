@@ -46,21 +46,32 @@ void nds_player_init(nds_player_controller* p,const nds_instance* scene)
 {
     size_t i;
     if(!p)return;
-    p->position=(nds_vec3){0,5,0};p->velocity=(nds_vec3){0,0,0};p->half_width=.45f;p->half_height=1.5f;p->move_speed=8;p->jump_speed=8;p->gravity=24;p->grounded=0;
+    p->position=(nds_vec3){0,5,0};p->velocity=(nds_vec3){0,0,0};p->half_width=.45f;p->half_height=1.5f;p->move_speed=8;p->jump_speed=8;p->gravity=24;p->health=100.0f;p->grounded=0;p->alive=1;
     if(!scene)return;
     for(i=0;i<nds_instance_child_count(scene);++i){const nds_instance* c=nds_instance_child_at(scene,i);nds_part_properties q;if(c&&nds_instance_get_class(c)==NDS_CLASS_SPAWN_POINT&&nds_part_get_properties(c,&q)==NDS_OK){p->position=q.position;p->position.y+=p->half_height+.5f;return;}}
 }
 
+void nds_player_damage(nds_player_controller* p, float amount)
+{
+    if(!p || !p->alive || amount <= 0.0f) return;
+    p->health -= amount;
+    if(p->health <= 0.0f) {
+        p->health = 0.0f;
+        p->alive = 0;
+        p->velocity = (nds_vec3){0, 0, 0};
+    }
+}
+
 void nds_player_update(nds_player_controller* p,const nds_instance* scene,float dt,int f,int b,int l,int r,int jump)
 {
-    float x,z,len,ox,oy,oz;if(!p||!scene)return;if(dt<0)dt=0;if(dt>.05f)dt=.05f;
+    float x,z,len,ox,oy,oz;if(!p||!scene||!p->alive)return;if(dt<0)dt=0;if(dt>.05f)dt=.05f;
     x=(float)(r-l);z=(float)(b-f);len=sqrtf(x*x+z*z);if(len>0){x/=len;z/=len;}p->velocity.x=x*p->move_speed;p->velocity.z=z*p->move_speed;
     if(jump&&p->grounded){p->velocity.y=p->jump_speed;p->grounded=0;}p->velocity.y-=p->gravity*dt;
     ox=p->position.x;oy=p->position.y;oz=p->position.z;p->grounded=0;
     p->position.x+=p->velocity.x*dt;collide(p,scene,0,ox,p->half_width);
     p->position.y+=p->velocity.y*dt;collide(p,scene,1,oy,p->half_height);
     p->position.z+=p->velocity.z*dt;collide(p,scene,2,oz,p->half_width);
-    if(p->position.y<-100){p->position=(nds_vec3){0,10,0};p->velocity=(nds_vec3){0,0,0};}
+    if(p->position.y<-20){nds_player_damage(p,100.0f);}
 }
 
 void nds_player_apply_camera(const nds_player_controller* p,nds_camera* camera)
