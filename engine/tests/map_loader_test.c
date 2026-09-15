@@ -1,5 +1,6 @@
 #include "engine/content/map_loader.h"
 #include "engine/scene/part.h"
+#include "engine/render/mesh_cache.h"
 
 #include <stdio.h>
 
@@ -21,6 +22,31 @@ static int test_valid_map(void)
     if (props.size.x != 10.0f || props.size.y != 2.0f || props.size.z != 8.0f) { nds_instance_destroy(root); return 4; }
     if (props.transparency != 0.25f || props.reflectance != 0.1f || !props.anchored || !props.can_collide) { nds_instance_destroy(root); return 5; }
     if (props.color_rgba != 0x7f3fffFFu && props.color_rgba != 0x7f40ffffu) { nds_instance_destroy(root); return 6; }
+    nds_instance_destroy(root);
+    return 0;
+}
+
+static int test_mesh_resolution(void)
+{
+    const char* json =
+        "{\"format\":\"nds-map\",\"version\":1,\"instances\":["
+        "{\"id\":0,\"class\":\"DataModel\",\"name\":\"Game\",\"parent\":null},"
+        "{\"id\":1,\"class\":\"MeshPart\",\"name\":\"Triangle\",\"parent\":0,"
+        "\"geometry\":{\"type\":\"mesh\",\"mesh\":\"game/content/meshes/triangle.ndsmesh\"}}]}";
+    nds_instance* root = NULL;
+    nds_instance* part;
+    nds_mesh_cache* cache = NULL;
+    const nds_mesh* mesh = NULL;
+    if (nds_map_load_json_text(json, &root) != NDS_OK || !root) return 1;
+    part = nds_instance_find_child(root, "Triangle");
+    if (!part) { nds_instance_destroy(root); return 2; }
+    if (nds_mesh_cache_create(&cache, 4) != NDS_OK) { nds_instance_destroy(root); return 3; }
+    if (nds_map_resolve_meshes(root, cache) != NDS_OK) { nds_mesh_cache_destroy(cache); nds_instance_destroy(root); return 4; }
+    if (nds_part_get_mesh(part, &mesh) != NDS_OK || !mesh || mesh->vertex_count != 3 || mesh->index_count != 3) {
+        nds_mesh_cache_destroy(cache); nds_instance_destroy(root); return 5;
+    }
+    if (nds_mesh_cache_count(cache) != 1) { nds_mesh_cache_destroy(cache); nds_instance_destroy(root); return 6; }
+    nds_mesh_cache_destroy(cache);
     nds_instance_destroy(root);
     return 0;
 }
@@ -58,6 +84,7 @@ int main(void)
 {
     int rc;
     rc = test_valid_map(); if (rc) return rc;
+    rc = test_mesh_resolution(); if (rc) return 20 + rc;
     if (test_rejects_invalid_parent()) return 10;
     if (test_rejects_duplicate_id()) return 11;
     if (test_rejects_trailing_data()) return 12;
