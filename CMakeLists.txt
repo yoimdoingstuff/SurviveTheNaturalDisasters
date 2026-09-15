@@ -8,27 +8,15 @@ if(NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE Release)
 endif()
 
-# -----------------------------------------------------------------------
-# Engine core - platform-independent. Must never include OS headers;
-# everything OS-specific goes through engine/include/engine/platform/platform.h.
-# -----------------------------------------------------------------------
 set(ENGINE_CORE_SOURCES
     engine/src/core/log.c
     engine/src/core/config.c
     engine/src/core/clock.c
     engine/src/core/memstat.c
     engine/src/core/app.c
+    engine/src/scene/instance.c
 )
 
-# -----------------------------------------------------------------------
-# Platform backend selection.
-#
-# Windows is the only implemented backend so far (TODO.md Phase 0/1,
-# chosen as the first buildable target for local development). Future
-# platforms (iOS, Android, other desktop) add their own
-# engine/src/platform/<name>/ sources and entry point, selected here the
-# same way, without touching engine_core.
-# -----------------------------------------------------------------------
 if(WIN32)
     set(ENGINE_PLATFORM_SOURCES
         engine/src/platform/windows/platform_windows.c
@@ -58,7 +46,7 @@ target_include_directories(engine_core PUBLIC
 if(MSVC)
     target_compile_options(engine_core PRIVATE /W4)
 else()
-    target_compile_options(engine_core PRIVATE -Wall -Wextra)
+    target_compile_options(engine_core PRIVATE -Wall -Wextra -Wpedantic)
 endif()
 
 add_executable(nds_runtime
