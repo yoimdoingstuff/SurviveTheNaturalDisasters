@@ -10,6 +10,7 @@
 #include "engine/render/draw.h"
 #include "engine/render/gles2.h"
 #include "engine/render/camera.h"
+#include "engine/render/mesh_cache.h"
 
 #include <string.h>
 
@@ -60,7 +61,7 @@ static nds_result create_demo_scene(nds_instance** out_root)
     return NDS_OK;
 }
 
-static nds_result load_startup_scene(const char* map_path, nds_instance** out_root)
+static nds_result load_startup_scene(const char* map_path, nds_mesh_cache* mesh_cache, nds_instance** out_root)
 {
     nds_result rc;
     const char* path = map_path && map_path[0] ? map_path : DEFAULT_MAP_PATH;
@@ -70,6 +71,14 @@ static nds_result load_startup_scene(const char* map_path, nds_instance** out_ro
     rc = nds_map_load_json(path, out_root);
     if (rc == NDS_OK) {
         NDS_LOGI(TAG, "loaded project map: %s", path);
+        if (mesh_cache) {
+            rc = nds_map_resolve_meshes(*out_root, mesh_cache);
+            if (rc != NDS_OK) {
+                /* Unsupported/unconverted source asset IDs should not prevent
+                 * the rest of the map from rendering with fallback boxes. */
+                NDS_LOGW(TAG, "one or more project mesh assets could not be resolved (%d)", (int)rc);
+            }
+        }
         return NDS_OK;
     }
 
@@ -110,13 +119,25 @@ nds_result nds_app_run(const nds_app_options* options)
     nds_instance* scene = NULL;
     nds_draw_list draw_list;
     nds_gles2_renderer* renderer = NULL;
+    nds_mesh_cache* mesh_cache = NULL;
     nds_camera camera;
     nds_draw_list_init(&draw_list);
     nds_camera_init(&camera);
 
-    rc = load_startup_scene(options->map_path, &scene);
+    rc = nds_mesh_cache_create(&mesh_cache, 256);
+    if (rc != NDS_OK) {
+        NDS_LOGE(TAG, "mesh cache creation failed (%d)", (int)rc);
+        nds_draw_list_destroy(&draw_list);
+        platform_destroy_window();
+        nds_config_destroy(cfg);
+        platform_shutdown();
+        return rc;
+    }
+
+    rc = load_startup_scene(options->map_path, mesh_cache, &scene);
     if (rc != NDS_OK) {
         NDS_LOGE(TAG, "scene creation failed (%d)", (int)rc);
+        nds_mesh_cache_destroy(mesh_cache);
         nds_draw_list_destroy(&draw_list);
         platform_destroy_window();
         nds_config_destroy(cfg);
@@ -134,6 +155,7 @@ nds_result nds_app_run(const nds_app_options* options)
     if (rc != NDS_OK) {
         NDS_LOGE(TAG, "renderer creation failed (%d)", (int)rc);
         nds_instance_destroy(scene);
+        nds_mesh_cache_destroy(mesh_cache);
         nds_draw_list_destroy(&draw_list);
         platform_destroy_window();
         nds_config_destroy(cfg);
@@ -201,6 +223,7 @@ nds_result nds_app_run(const nds_app_options* options)
     NDS_LOGI(TAG, "shutting down after %lu frames", frames_run);
     nds_gles2_renderer_destroy(renderer);
     nds_instance_destroy(scene);
+    nds_mesh_cache_destroy(mesh_cache);
     nds_draw_list_destroy(&draw_list);
     platform_destroy_window();
     nds_config_destroy(cfg);
