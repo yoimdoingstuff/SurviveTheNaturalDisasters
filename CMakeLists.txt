@@ -19,6 +19,7 @@ set(ENGINE_CORE_SOURCES
     engine/src/game/player.c
     engine/src/game/round.c
     engine/src/game/disaster.c
+    engine/src/game/disaster_system.c
     engine/src/scene/instance.c
     engine/src/scene/instance_child_alias.c
     engine/src/scene/part.c
@@ -124,3 +125,7 @@ add_test(NAME nds_disaster_test COMMAND nds_disaster_test)
 add_executable(nds_map_catalog_test engine/tests/map_catalog_test.c)
 target_link_libraries(nds_map_catalog_test PRIVATE engine_core ${ENGINE_PLATFORM_LIBS})
 add_test(NAME nds_map_catalog_test COMMAND nds_map_catalog_test)
+
+add_executable(nds_disaster_system_test engine/tests/disaster_system_test.c)
+target_link_libraries(nds_disaster_system_test PRIVATE engine_core ${ENGINE_PLATFORM_LIBS})
+add_test(NAME nds_disaster_system_test COMMAND nds_disaster_system_test)
