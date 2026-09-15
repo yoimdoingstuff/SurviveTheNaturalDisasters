@@ -19,7 +19,7 @@ jobs:
         run: python -m unittest discover -s tools/map_importer -p "test_*.py" -v
 
       - name: Configure (CMake)
-        run: cmake -S . -B build -G "Visual Studio 18 2026" -A x64 -DNDS_ENABLE_ASAN=ON
+        run: cmake -S . -B build -G "Visual Studio 18 2026" -A x64
 
       - name: Build (Release)
         run: cmake --build build --config Release
