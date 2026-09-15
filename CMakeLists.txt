@@ -16,6 +16,7 @@ set(ENGINE_CORE_SOURCES
     engine/src/core/app.c
     engine/src/scene/instance.c
     engine/src/scene/part.c
+    engine/src/content/map_loader.c
 )
 
 if(WIN32)
