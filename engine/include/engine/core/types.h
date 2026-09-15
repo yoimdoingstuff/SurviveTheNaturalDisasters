@@ -23,7 +23,8 @@ typedef enum nds_result {
     NDS_ERR_NOT_IMPLEMENTED = -2,
     NDS_ERR_INIT_FAILED = -3,
     NDS_ERR_IO = -4,
-    NDS_ERR_INVALID_ARG = -5
+    NDS_ERR_INVALID_ARG = -5,
+    NDS_ERR_NOT_FOUND = -6
 } nds_result;
 
 #endif /* NDS_ENGINE_TYPES_H */
