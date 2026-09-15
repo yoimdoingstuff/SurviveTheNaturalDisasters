@@ -15,6 +15,7 @@ set(ENGINE_CORE_SOURCES
     engine/src/core/memstat.c
     engine/src/core/app.c
     engine/src/scene/instance.c
+    engine/src/scene/part.c
 )
 
 if(WIN32)
