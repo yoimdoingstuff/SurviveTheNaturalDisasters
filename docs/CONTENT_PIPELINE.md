@@ -47,6 +47,23 @@ Maps should contain:
 - map metadata
 - disaster-specific markers/hooks
 
+## Sharing maps
+
+Portable maps use the `.ndsmap` sharing package format. It is a ZIP container containing the project-owned `map.json`, a package manifest, and optional converted assets:
+
+```text
+my_map.ndsmap
+  package.json
+  map.json
+  assets/
+    meshes/
+    textures/
+```
+
+The dependency-free `tools/map_importer/nds_package.py` tool can pack and unpack these files. The package format deliberately avoids requiring ZIP support inside the legacy native runtime. A platform UI can import a package, extract it to its content directory, and then pass the normal `nds-map` JSON to the runtime.
+
+Only legally redistributable content should be bundled. Proprietary source files remain outside shared packages unless redistribution rights are established.
+
 ## Scripts
 
 Scripts should use the project's documented compatibility API rather than direct platform calls.
