@@ -1,0 +1,9 @@
+NDSMESH 1
+vertex_count 3
+index_count 3
+vertices
+0.0 0.6 0.0
+-0.6 -0.6 0.0
+0.6 -0.6 0.0
+indices
+0 1 2
