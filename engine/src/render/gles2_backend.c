@@ -201,12 +201,14 @@ nds_result nds_gles2_backend_resize(nds_gles2_backend* b,int width,int height)
 nds_result nds_gles2_backend_begin(nds_gles2_backend* b)
 { if(!b)return NDS_ERR_INVALID_ARG; if(platform_gl_context_make_current()!=NDS_OK)return NDS_ERR_INIT_FAILED; glClearColor(0.055f,0.075f,0.10f,1);glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);b->gl.glUseProgram(b->program);return NDS_OK; }
 
-nds_result nds_gles2_backend_draw_parts(nds_gles2_backend* b,const nds_draw_list* list)
+nds_result nds_gles2_backend_draw_parts(nds_gles2_backend* b,const nds_draw_list* list,const nds_camera* camera)
 {
     nds_mat4 projection,view,pv,model,mvp; float aspect;
-    if(!b||!list)return NDS_ERR_INVALID_ARG;
+    if(!b||!list||!camera)return NDS_ERR_INVALID_ARG;
     aspect=b->height>0?(float)b->width/(float)b->height:1.0f;
-    nds_mat4_perspective(&projection,b->fov_y_degrees,aspect,b->near_plane,b->far_plane); nds_mat4_translate(&view,0,-5,-14); nds_mat4_mul(&pv,&projection,&view);
+    nds_camera_projection_matrix(camera,aspect,&projection);
+    nds_camera_view_matrix(camera,&view);
+    nds_mat4_mul(&pv,&projection,&view);
     b->gl.glBindBuffer(GL_ARRAY_BUFFER,b->vertex_buffer); b->gl.glBindBuffer(GL_ELEMENT_ARRAY_BUFFER,b->index_buffer); b->gl.glEnableVertexAttribArray((GLuint)b->position_attrib); b->gl.glVertexAttribPointer((GLuint)b->position_attrib,3,GL_FLOAT,GL_FALSE,0,(const void*)0);
     for(size_t i=0;i<list->count;++i){
         const nds_draw_part* p=&list->parts[i];
