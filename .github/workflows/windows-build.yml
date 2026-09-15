@@ -1,0 +1,40 @@
+name: Windows build
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch: {}
+
+jobs:
+  windows:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure (CMake)
+        run: cmake -S . -B build -G "Visual Studio 17 2022" -A x64
+
+      - name: Build (Release)
+        run: cmake --build build --config Release
+
+      # Proves the runtime actually boots (window + main loop + shutdown),
+      # not just that it compiles. --smoke-test makes it exit on its own
+      # after 60 frames instead of waiting for input.
+      #
+      # NOTE: GitHub-hosted Windows runners provide an interactive desktop
+      # session, so CreateWindow/GDI calls work here. If this step ever
+      # starts failing only in CI (and the same build runs fine locally),
+      # that's the first thing to check.
+      - name: Smoke test the runtime
+        shell: cmd
+        run: build\Release\nds_runtime.exe --smoke-test 60
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: nds_runtime-windows
+          path: build/Release/nds_runtime.exe

@@ -12,19 +12,17 @@ Legend:
 ### Cross-platform baseline
 
 - [ ] Define Tier 1 platforms: iOS 8/iOS 6 where feasible, Android 4.0+ (API 14+), Windows
-- [ ] Define shared platform API for graphics, input, files, audio, sockets, timing, lifecycle
+- [x] Define shared platform API for graphics, input, files, audio, sockets, timing, lifecycle
 - [ ] Confirm legacy-compatible build toolchains for each Tier 1 platform
-- [ ] Establish Windows development build
+- [x] Establish Windows development build
 - [ ] Establish Android 4.0+ development build
-
-
 - [ ] Define exact legal/content source for game assets and scripts
 - [ ] Choose license for original runtime code
 - [ ] Freeze target baseline: iPad 4 / A6X
 - [ ] Establish iOS 8 build environment
 - [ ] Establish iOS 6 build feasibility test
 - [ ] Create shared desktop development build
-- [ ] Create basic CI/build scripts
+- [x] Create basic CI/build scripts
 - [ ] Audit existing open-source Roblox-like engines before implementing major subsystems
 - [ ] Create comparison matrix for OpenRBLX, RNR, Gargantuan, Novalume, and other candidates
 - [ ] Verify licenses and provenance for every candidate subsystem
@@ -49,16 +47,14 @@ Legend:
 - [ ] Build a first playable imported map before implementing every engine feature
 - [ ] Track unsupported source features instead of blocking the whole import
 - [ ] Add repeatable map re-import/update workflow so imported maps can be refreshed as the importer improves
-
-
-- [ ] Application bootstrap
-- [ ] Platform abstraction layer
-- [ ] File system abstraction
-- [ ] Timing/clock system
-- [ ] Main loop
-- [ ] Logging/debug console
-- [ ] Configuration system
-- [ ] Basic memory/performance instrumentation
+- [x] Application bootstrap
+- [x] Platform abstraction layer <!-- interface + Windows backend done; other platform backends still pending -->
+- [x] File system abstraction
+- [x] Timing/clock system
+- [x] Main loop
+- [~] Logging/debug console <!-- leveled console logging done; interactive in-game debug console still pending -->
+- [x] Configuration system
+- [x] Basic memory/performance instrumentation
 
 ## Phase 2 - Rendering
 
