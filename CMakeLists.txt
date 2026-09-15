@@ -17,6 +17,7 @@ set(ENGINE_CORE_SOURCES
     engine/src/core/memstat.c
     engine/src/core/app.c
     engine/src/scene/instance.c
+    engine/src/scene/instance_child_alias.c
     engine/src/scene/part.c
     engine/src/content/map_loader.c
     engine/src/render/draw.c
