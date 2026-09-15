@@ -93,18 +93,18 @@ Legend:
 
 ## Phase 4 - Physics and collision
 - [ ] Define physics abstraction suitable for legacy platforms
-- [ ] Static world collision
-- [ ] Primitive box collision
+- [x] Static world collision
+- [x] Primitive box collision
 - [ ] Broad-phase collision detection
 - [ ] Narrow-phase collision tests
 - [ ] Raycasts
 - [ ] Overlap queries
-- [ ] Gravity
-- [ ] Velocity/acceleration integration
+- [x] Gravity
+- [x] Velocity/acceleration integration
 - [ ] Friction and restitution
 - [ ] Anchored/unanchored behavior
 - [ ] Basic constraints/joints
-- [ ] Character collision controller
+- [x] Character collision controller
 - [ ] Physics update determinism
 - [ ] Low-memory physics configuration for A6X
 - [ ] Physics stress test
@@ -112,14 +112,14 @@ Legend:
 ## Phase 5 - Characters and humanoid systems
 - [ ] Character model abstraction
 - [ ] Humanoid/controller state machine
-- [ ] Walk/run/jump
-- [ ] Ground detection
-- [ ] Health/death states
-- [ ] Respawn system
-- [ ] Character physics integration
-- [ ] Camera follow/third-person controller
+- [x] Walk/run/jump
+- [x] Ground detection
+- [x] Health/death states
+- [x] Respawn system
+- [x] Character physics integration
+- [x] Camera follow/third-person controller
 - [ ] Touch movement controls
-- [ ] Desktop keyboard/mouse controls
+- [x] Desktop keyboard/mouse controls
 - [ ] Controller/gamepad input
 - [ ] Character animation abstraction
 - [ ] Basic legacy-compatible avatar rig
@@ -156,9 +156,8 @@ Legend:
 - [ ] Script extraction/import workflow
 - [ ] Unsupported-feature report
 - [ ] Deterministic package builds
-- [ ] Content validation tool
-- [ ] Re-import/update command
-- [ ] Versioned game/content package format
+- [x] Re-import/update command
+- [~] Versioned game/content package format
 
 ## Phase 8 - Audio and presentation
 - [ ] Audio abstraction
@@ -176,17 +175,17 @@ Legend:
 - [ ] Pause/options UI
 
 ## Phase 9 - NDS gameplay prototype
-- [ ] Implement round state machine
-- [ ] Intermission/countdown
+- [~] Implement round state machine
+- [~] Intermission/countdown
 - [ ] Map selection
-- [ ] Disaster selection/randomization
-- [ ] Disaster lifecycle API
-- [ ] First disaster implementation
-- [ ] Player survival/death tracking
-- [ ] Round completion/results
+- [~] Disaster selection/randomization <!-- current round model selects the first implemented disaster -->
+- [~] Disaster lifecycle API <!-- current Earthquake lifecycle is integrated with round state -->
+- [~] First disaster implementation <!-- Earthquake prototype -->
+- [x] Player survival/death tracking
+- [~] Round completion/results
 - [ ] One complete playable map
-- [ ] One complete disaster
-- [ ] Offline single-player round using the same simulation interfaces intended for multiplayer
+- [~] One complete disaster
+- [~] Offline single-player round using the same simulation interfaces intended for multiplayer
 - [ ] Validate complete end-to-end round
 
 ## Phase 10 - Base game systems
