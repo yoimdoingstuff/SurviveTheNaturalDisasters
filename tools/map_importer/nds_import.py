@@ -28,10 +28,12 @@ def scalar(text: str) -> Any:
         return text
 
 def property_value(node: ET.Element) -> Any:
-    # Roblox XML vectors are normally encoded as child X/Y/Z elements.
     children = {tag(c): (c.text or "").strip() for c in node}
     if set(children) >= {"X", "Y", "Z"}:
         try: return [float(children["X"]), float(children["Y"]), float(children["Z"])]
+        except ValueError: pass
+    if set(children) >= {"R", "G", "B"} and len(children) == 3:
+        try: return [float(children["R"]), float(children["G"]), float(children["B"])]
         except ValueError: pass
     if set(children) >= {"X", "Y"} and len(children) == 2:
         try: return [float(children["X"]), float(children["Y"])]
@@ -65,20 +67,32 @@ def walk(root: ET.Element) -> list[dict[str, Any]]:
     visit(root, None)
     return result
 
+def normalize_instance(entry: dict[str, Any]) -> None:
+    props = entry["properties"]
+    position = props.get("Position")
+    size = props.get("Size")
+    if isinstance(position, list) and len(position) == 3:
+        entry.setdefault("transform", {})["position"] = position
+    if isinstance(size, list) and len(size) == 3:
+        entry.setdefault("transform", {})["size"] = size
+    if "Rotation" in props and isinstance(props["Rotation"], list):
+        entry.setdefault("transform", {})["rotation"] = props["Rotation"]
+    part_fields = {"Transparency": "transparency", "Reflectance": "reflectance",
+                   "Anchored": "anchored", "CanCollide": "can_collide", "Color": "color"}
+    for source, target in part_fields.items():
+        if source in props: entry.setdefault("part", {})[target] = props[source]
+
 def import_xml(source: Path, destination: Path) -> dict[str, Any]:
     try: root = ET.parse(source).getroot()
     except ET.ParseError as exc: raise ValueError(f"invalid XML: {exc}") from exc
     instances = walk(root)
     unsupported = sorted({i["class"] for i in instances if i["class"] not in SUPPORTED_CLASSES})
-    for i in instances:
-        position = i["properties"].get("Position")
-        if isinstance(position, list) and len(position) == 3:
-            i["transform"] = {"position": position}
+    for i in instances: normalize_instance(i)
     classes: dict[str, int] = {}
     for i in instances: classes[i["class"]] = classes.get(i["class"], 0) + 1
     package = {"format": "nds-map", "version": 1,
                "source": {"filename": source.name, "extension": source.suffix.lower()},
-               "importer": {"name": "nds_import", "version": "0.2"},
+               "importer": {"name": "nds_import", "version": "0.3"},
                "summary": {"instance_count": len(instances), "classes": classes,
                            "unsupported_classes": unsupported}, "instances": instances}
     destination.parent.mkdir(parents=True, exist_ok=True)
