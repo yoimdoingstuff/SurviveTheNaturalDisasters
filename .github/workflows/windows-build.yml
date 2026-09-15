@@ -24,6 +24,9 @@ jobs:
       - name: Build (Release)
         run: cmake --build build --config Release
 
+      - name: Run native CTest suite
+        run: ctest --test-dir build -C Release --output-on-failure
+
       # Proves the runtime actually boots (window + main loop + shutdown),
       # not just that it compiles. --smoke-test makes it exit on its own
       # after 60 frames instead of waiting for input.
