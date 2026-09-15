@@ -8,9 +8,6 @@
 extern "C" {
 #endif
 
-typedef struct nds_instance nds_instance;
-typedef void (*nds_instance_user_data_destructor)(void* user_data);
-
 typedef enum nds_instance_class {
     NDS_CLASS_INSTANCE = 0,
     NDS_CLASS_DATAMODEL,
@@ -24,15 +21,24 @@ typedef enum nds_instance_class {
     NDS_CLASS_VALUE
 } nds_instance_class;
 
+typedef struct nds_instance nds_instance;
+typedef void (*nds_instance_user_data_destructor)(void* user_data);
+
 nds_instance* nds_instance_create(nds_instance_class class_id, const char* name);
 void nds_instance_destroy(nds_instance* instance);
+
 nds_instance_class nds_instance_get_class(const nds_instance* instance);
 const char* nds_instance_get_name(const nds_instance* instance);
 void nds_instance_set_name(nds_instance* instance, const char* name);
+
 nds_instance* nds_instance_get_parent(const nds_instance* instance);
 nds_result nds_instance_set_parent(nds_instance* instance, nds_instance* parent);
 size_t nds_instance_child_count(const nds_instance* instance);
 nds_instance* nds_instance_child_at(const nds_instance* instance, size_t index);
+
+/* Convenience alias used by recursive systems. */
+nds_instance* nds_instance_get_child(const nds_instance* instance, size_t index);
+
 nds_instance* nds_instance_find_child(const nds_instance* instance, const char* name);
 nds_instance* nds_instance_find_descendant(const nds_instance* instance, const char* name);
 nds_instance* nds_instance_find_path(const nds_instance* root, const char* path);
