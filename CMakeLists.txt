@@ -47,7 +47,13 @@ if(MSVC)
     # The Windows SDK OpenGL header expects the Win32 calling-convention
     # macros to be defined before GL/gl.h is parsed. The renderer loads its
     # modern GL entry points manually, so it does not otherwise need windows.h.
-    target_compile_definitions(engine_core PRIVATE APIENTRY=__stdcall WINGDIAPI=__declspec\(dllimport\))
+    # Keep the legacy GL typedef spelling used by the renderer compatible with
+    # the Windows SDK headers as well.
+    target_compile_definitions(engine_core PRIVATE
+        APIENTRY=__stdcall
+        WINGDIAPI=__declspec\(dllimport\)
+        PFNGLLINKPROGRAMPROC=PFNGLINKPROGRAMPROC
+    )
 else()
     target_compile_options(engine_core PRIVATE -Wall -Wextra -Wpedantic)
 endif()
