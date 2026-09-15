@@ -118,7 +118,20 @@ static void integrate_body(nds_physics_world* w,nds_physics_body* b,float dt)
     nds_part_set_position(b->instance,p.position);
 }
 
-static void resolve_pair(nds_physics_body* a,nds_physics_body* b)
+static void apply_support_friction(nds_physics_body* dynamic_body,const nds_physics_body* other,float dt)
+{
+    float speed,normal_force,impulse,mu;
+    if(!dynamic_body->dynamic||!dynamic_body->grounded||other->dynamic)return;
+    speed=sqrtf(dynamic_body->velocity.x*dynamic_body->velocity.x+dynamic_body->velocity.z*dynamic_body->velocity.z);
+    if(speed<=0.0001f)return;
+    mu=sqrtf(maxf(0.0f,dynamic_body->friction)*maxf(0.0f,other->friction));
+    normal_force=32.0f*dynamic_body->mass;
+    impulse=minf(speed*dynamic_body->mass,normal_force*mu*dt);
+    dynamic_body->velocity.x-=dynamic_body->velocity.x/speed*(impulse/dynamic_body->mass);
+    dynamic_body->velocity.z-=dynamic_body->velocity.z/speed*(impulse/dynamic_body->mass);
+}
+
+static void resolve_pair(nds_physics_body* a,nds_physics_body* b,float dt)
 {
     nds_part_properties pa,pb;nds_vec3 n,rv,tangent,impulse;float depth,inva=0,invb=0,total,rel,j,jt,maxjt,mu;
     if(nds_part_get_properties(a->instance,&pa)!=NDS_OK||nds_part_get_properties(b->instance,&pb)!=NDS_OK||!pa.can_collide||!pb.can_collide||(!a->dynamic&&!b->dynamic)||!aabb_overlap(&pa,&pb,&n,&depth))return;
@@ -136,8 +149,8 @@ static void resolve_pair(nds_physics_body* a,nds_physics_body* b)
         tangent=subv(rv,mulv(n,rel));
         {float tl=sqrtf(dotv(tangent,tangent));if(tl>0.0001f){tangent=mulv(tangent,1.0f/tl);jt=-dotv(rv,tangent)/total;mu=sqrtf(maxf(0,a->friction)*maxf(0,b->friction));maxjt=j*mu;jt=clampf(jt,-maxjt,maxjt);impulse=mulv(tangent,jt);if(a->dynamic)a->velocity=subv(a->velocity,mulv(impulse,inva));if(b->dynamic)b->velocity=addv(b->velocity,mulv(impulse,invb));}}
     }
-    if(a->dynamic&&n.y<-.5f){a->grounded=1;if(a->velocity.y>0)a->velocity.y=0;}
-    if(b->dynamic&&n.y>.5f){b->grounded=1;if(b->velocity.y<0)b->velocity.y=0;}
+    if(a->dynamic&&n.y<-.5f){a->grounded=1;if(a->velocity.y>0)a->velocity.y=0;apply_support_friction(a,b,dt);}
+    if(b->dynamic&&n.y>.5f){b->grounded=1;if(b->velocity.y<0)b->velocity.y=0;apply_support_friction(b,a,dt);}
 }
 
 static float body_min_x(const nds_physics_body* b)
@@ -152,7 +165,7 @@ static void broadphase_sort(nds_physics_world* w)
     for(i=1;i<w->count;++i){key=w->broadphase_order[i];keyx=body_min_x(&w->bodies[key]);j=i;while(j>0&&body_min_x(&w->bodies[w->broadphase_order[j-1]])>keyx){w->broadphase_order[j]=w->broadphase_order[j-1];--j;}w->broadphase_order[j]=key;}
 }
 
-static void broadphase_collide(nds_physics_world* w)
+static void broadphase_collide(nds_physics_world* w,float dt)
 {
     size_t i,j,ia,ib;nds_part_properties pa,pb;nds_physics_bounds ab,bb;
     broadphase_sort(w);
@@ -160,7 +173,7 @@ static void broadphase_collide(nds_physics_world* w)
         for(j=i+1;j<w->count;++j){ib=w->broadphase_order[j];if(nds_part_get_properties(w->bodies[ib].instance,&pb)!=NDS_OK)continue;bounds(&pb,&bb);
             if(bb.minx>ab.maxx)break;
             if(bb.maxy<=ab.miny||bb.miny>=ab.maxy||bb.maxz<=ab.minz||bb.minz>=ab.maxz)continue;
-            resolve_pair(&w->bodies[ia],&w->bodies[ib]);
+            resolve_pair(&w->bodies[ia],&w->bodies[ib],dt);
         }
     }
 }
@@ -171,6 +184,6 @@ nds_result nds_physics_update(nds_physics_world* w,float dt)
     if(dt<0.0f)dt=0.0f;if(dt>w->max_dt)dt=w->max_dt;steps=(int)ceilf(dt/.0166667f);if(steps<1)steps=1;if(steps>4)steps=4;
     if(ensure_broadphase_capacity(w,w->count)!=NDS_OK)return NDS_ERR_UNKNOWN;
     step=dt/steps;
-    for(i=0;i<(size_t)steps;++i){size_t j;for(j=0;j<w->count;++j)integrate_body(w,&w->bodies[j],step);broadphase_collide(w);}
+    for(i=0;i<(size_t)steps;++i){size_t j;for(j=0;j<w->count;++j)integrate_body(w,&w->bodies[j],step);broadphase_collide(w,step);}
     return NDS_OK;
 }
