@@ -142,6 +142,18 @@ static int parse_entry(parser* p, map_entry* e)
 static void free_entries(map_entry* entries, size_t count)
 { size_t i; for (i=0;i<count;++i) { free(entries[i].class_name); free(entries[i].name); } free(entries); }
 
+static void destroy_object_graph(nds_instance** objects, size_t count)
+{
+    nds_instance** roots; size_t root_count = 0, i;
+    roots = (nds_instance**)calloc(count ? count : 1, sizeof(*roots));
+    if (!roots) return;
+    for (i = 0; i < count; ++i) {
+        if (objects[i] && nds_instance_get_parent(objects[i]) == NULL) roots[root_count++] = objects[i];
+    }
+    for (i = 0; i < root_count; ++i) nds_instance_destroy(roots[i]);
+    free(roots);
+}
+
 nds_result nds_map_load_json_text(const char* text, nds_instance** out_root)
 {
     parser p; map_entry* entries; size_t count=0, capacity=64, i; nds_instance** objects; nds_instance* root=NULL;
@@ -159,12 +171,25 @@ nds_result nds_map_load_json_text(const char* text, nds_instance** out_root)
         } else if (!skip_value(&p)) { free(key); free_entries(entries,count); return NDS_ERR_IO; }
         free(key); ws(&p); if (ch(&p,'}')) break; if (!ch(&p,',')) { free_entries(entries,count); return NDS_ERR_IO; }
     }
+    ws(&p); if (p.p != p.end) { free_entries(entries,count); return NDS_ERR_IO; }
     objects=(nds_instance**)calloc(count ? count : 1,sizeof(*objects)); if (!objects) { free_entries(entries,count); return NDS_ERR_UNKNOWN; }
-    for (i=0;i<count;++i) { objects[i]=nds_instance_create(class_id(entries[i].class_name?entries[i].class_name:"Instance"),entries[i].name?entries[i].name:"Instance"); if (!objects[i]) { size_t j; for(j=0;j<i;++j) nds_instance_destroy(objects[j]); free(objects); free_entries(entries,count); return NDS_ERR_UNKNOWN; } }
     for (i=0;i<count;++i) {
-        map_entry* e=&entries[i];
-        if (e->parent>=0 && (size_t)e->parent<count) { if (nds_instance_set_parent(objects[i],objects[e->parent])!=NDS_OK) { size_t j; for(j=0;j<count;++j) if(objects[j] && nds_instance_get_parent(objects[j])==NULL) nds_instance_destroy(objects[j]); free(objects); free_entries(entries,count); return NDS_ERR_UNKNOWN; } }
-        else if (!root) root=objects[i];
+        size_t j;
+        if (entries[i].id < 0 || entries[i].id >= (int)count) { free(objects); free_entries(entries,count); return NDS_ERR_IO; }
+        for (j=0;j<i;++j) if (entries[j].id == entries[i].id) { free(objects); free_entries(entries,count); return NDS_ERR_IO; }
+        objects[i]=nds_instance_create(class_id(entries[i].class_name?entries[i].class_name:"Instance"),entries[i].name?entries[i].name:"Instance");
+        if (!objects[i]) { destroy_object_graph(objects,i); free(objects); free_entries(entries,count); return NDS_ERR_UNKNOWN; }
+    }
+    for (i=0;i<count;++i) {
+        map_entry* e=&entries[i]; size_t parent_index = 0; int has_parent = e->parent >= 0;
+        if (has_parent) {
+            int found = 0; size_t j;
+            for (j=0;j<count;++j) if (entries[j].id == e->parent) { parent_index=j; found=1; break; }
+            if (!found || parent_index == i || nds_instance_set_parent(objects[i],objects[parent_index])!=NDS_OK) { destroy_object_graph(objects,count); free(objects); free_entries(entries,count); return NDS_ERR_IO; }
+        } else if (root) {
+            /* A map may contain only one top-level DataModel/root. */
+            destroy_object_graph(objects,count); free(objects); free_entries(entries,count); return NDS_ERR_IO;
+        } else root=objects[i];
         if (nds_instance_get_class(objects[i])==NDS_CLASS_PART || nds_instance_get_class(objects[i])==NDS_CLASS_SPAWN_POINT) {
             nds_part_properties props; if (nds_part_get_properties(objects[i],&props)==NDS_OK) {
                 if(e->has_position)props.position=e->position; if(e->has_size)props.size=e->size; if(e->has_rotation)props.rotation=e->rotation; if(e->has_transparency)props.transparency=e->transparency; if(e->has_reflectance)props.reflectance=e->reflectance; if(e->has_color)props.color_rgba=e->color_rgba; if(e->has_anchored)props.anchored=e->anchored; if(e->has_can_collide)props.can_collide=e->can_collide; nds_part_set_properties(objects[i],&props);
