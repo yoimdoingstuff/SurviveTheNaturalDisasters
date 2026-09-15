@@ -17,7 +17,7 @@ typedef struct nds_earthquake {
 
 void nds_earthquake_init(nds_earthquake* earthquake);
 void nds_earthquake_start(nds_earthquake* earthquake);
-void nds_earthquake_stop(nds_earthquake* earthquake);
+void nds_earthquake_stop(nds_earthquake* earthquake, nds_instance* scene);
 void nds_earthquake_update(nds_earthquake* earthquake, nds_player_controller* player,
                            nds_instance* scene, float dt);
 
