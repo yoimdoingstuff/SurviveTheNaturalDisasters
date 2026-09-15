@@ -55,6 +55,7 @@ class NdsImporterTests(unittest.TestCase):
         package = json.loads(output.read_text(encoding="utf-8"))
         mesh = package["instances"][1]
         self.assertEqual(mesh["geometry"], {"type": "mesh", "mesh": "rbxassetid://123", "texture": "rbxassetid://456"})
+        self.assertEqual(package["assets"], {"meshes": ["rbxassetid://123"], "textures": ["rbxassetid://456"]})
 
     def test_special_mesh_is_flattened_to_parent_part(self):
         source = self.tmp_path / "special_mesh.rbxlx"
@@ -71,6 +72,21 @@ class NdsImporterTests(unittest.TestCase):
         package = json.loads(output.read_text(encoding="utf-8"))
         part = package["instances"][1]
         self.assertEqual(part["geometry"], {"type": "mesh", "mesh": "rbxassetid://123", "texture": "rbxassetid://456"})
+        self.assertEqual(package["assets"], {"meshes": ["rbxassetid://123"], "textures": ["rbxassetid://456"]})
+
+    def test_asset_dependencies_are_deduplicated_and_sorted(self):
+        source = self.tmp_path / "assets.rbxlx"
+        output = self.tmp_path / "assets.json"
+        source.write_text(
+            '<roblox version="4"><Item class="DataModel"><Properties><string name="Name">Place</string></Properties>'
+            '<Item class="MeshPart"><Properties><string name="Name">B</string><Content name="MeshId"><url>mesh-b</url></Content><Content name="TextureID"><url>tex-a</url></Content></Properties></Item>'
+            '<Item class="MeshPart"><Properties><string name="Name">A</string><Content name="MeshId"><url>mesh-a</url></Content><Content name="TextureID"><url>tex-a</url></Content></Properties></Item>'
+            '</Item></roblox>', encoding="utf-8",
+        )
+        self.run_importer("import", str(source), "--output", str(output))
+        package = json.loads(output.read_text(encoding="utf-8"))
+        self.assertEqual(package["assets"]["meshes"], ["mesh-a", "mesh-b"])
+        self.assertEqual(package["assets"]["textures"], ["tex-a"])
 
     def test_scan_detects_binary(self):
         (self.tmp_path / "map.rbxl").write_bytes(b"binary")
