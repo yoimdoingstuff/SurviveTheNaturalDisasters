@@ -10,4 +10,6 @@ Mesh assets are loaded by the engine mesh API and can be used by renderer backen
 
 The current render fixture is `game/content/meshes/triangle.ndsmesh`. It is intentionally tiny so it can be used for desktop and legacy-device smoke testing.
 
-The renderer currently uses the same Part transform and color path for meshes. UV data is now preserved by the mesh loader and tested, while GPU texture sampling/material binding remains a separate renderer step. Normals, materials, LODs, and collision meshes are also separate steps so the base renderer stays small.
+The renderer uses the same Part transform and color path for meshes. UV data is preserved by the mesh loader and uploaded as interleaved position/UV vertex data by the GLES2 backend. RGBA8 textures are uploaded on first use into a bounded GPU cache, sampled with `texture2D`, and modulated by the Part color. Linear filtering and clamp-to-edge wrapping keep the path within the GLES2 feature set. Texture GPU objects are released with the renderer.
+
+Texture references still need to be resolved by the map/content pipeline. Normals, richer materials, LODs, and collision meshes remain separate steps so the base renderer stays small and suitable for legacy hardware.
