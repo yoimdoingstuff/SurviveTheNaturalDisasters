@@ -81,7 +81,6 @@ nds_result nds_app_run(const nds_app_options* options)
     if (rc != NDS_OK) { NDS_LOGE(TAG, "renderer creation failed (%d)", (int)rc); nds_instance_destroy(scene); nds_texture_cache_destroy(texture_cache); nds_mesh_cache_destroy(mesh_cache); nds_draw_list_destroy(&draw_list); platform_destroy_window(); nds_config_destroy(cfg); platform_shutdown(); return rc; }
     NDS_LOGI(TAG, "OpenGL rendering backend active; WASD moves, SPACE jumps");
     int render_width = win_desc.width, render_height = win_desc.height; nds_clock clock; nds_clock_init(&clock); nds_perf_reset(); unsigned long frames_run = 0; const int smoke_frames = options->smoke_test_frames;
-    nds_round_state last_round_state = round.state;
     while (!platform_quit_requested()) {
         if (platform_poll_events() != 0) platform_request_quit();
         if (platform_is_key_down(PLATFORM_KEY_ESCAPE)) platform_request_quit();
@@ -91,7 +90,6 @@ nds_result nds_app_run(const nds_app_options* options)
         if (round.state != previous_round_state) {
             NDS_LOGI(TAG, "round %u: %s", round.round_number, nds_round_state_name(round.state));
         }
-        last_round_state = round.state;
         if (round.state == NDS_ROUND_PLAYING) {
             nds_player_update(&player, scene, (float)dt,
                               platform_is_key_down(PLATFORM_KEY_W), platform_is_key_down(PLATFORM_KEY_S),
