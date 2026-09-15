@@ -6,6 +6,8 @@ if(NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE Release)
 endif()
 enable_testing()
+option(NDS_ENABLE_ASAN "Enable MSVC AddressSanitizer" OFF)
+
 set(ENGINE_CORE_SOURCES
     engine/src/core/log.c
     engine/src/core/config.c
@@ -58,6 +60,11 @@ if(ENGINE_MISSING_SOURCES)
     message(FATAL_ERROR "engine/src contains C sources not linked into engine_core: ${ENGINE_MISSING_SOURCES}")
 endif()
 
+if(MSVC AND NDS_ENABLE_ASAN)
+    add_compile_options(/fsanitize=address)
+    add_link_options(/fsanitize=address)
+endif()
+
 add_library(engine_core STATIC ${ENGINE_CORE_SOURCES} ${ENGINE_PLATFORM_SOURCES})
 target_include_directories(engine_core PUBLIC engine/include engine/src/render)
 if(MSVC)
@@ -87,6 +94,7 @@ add_test(NAME nds_draw_list_test COMMAND nds_draw_list_test)
 set_tests_properties(nds_draw_list_test PROPERTIES WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
 add_executable(nds_render_math_test engine/tests/render_math_test.c)
 target_link_libraries(nds_render_math_test PRIVATE engine_core ${ENGINE_PLATFORM_LIBS})
+add_test(NAME nds_render_math_test COMMAND nds_render_math_test)
 add_test(NAME nds_render_math_test COMMAND nds_render_math_test)
 add_executable(nds_frustum_test engine/tests/frustum_test.c)
 target_link_libraries(nds_frustum_test PRIVATE engine_core ${ENGINE_PLATFORM_LIBS})
