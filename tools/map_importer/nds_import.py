@@ -76,7 +76,6 @@ def normalize_instance(entry: dict[str, Any]) -> None:
     for source, target in part_fields.items():
         if source in props: entry.setdefault("part", {})[target] = props[source]
 
-    # Keep mesh and texture references together in project-owned geometry metadata.
     mesh_id = props.get("MeshId")
     texture_id = props.get("TextureID", props.get("TextureId"))
     geometry: dict[str, Any] = {}
@@ -87,23 +86,30 @@ def normalize_instance(entry: dict[str, Any]) -> None:
 def flatten_special_meshes(instances: list[dict[str, Any]]) -> None:
     """Copy SpecialMesh asset references onto their parent Part for native rendering."""
     for entry in instances:
-        if entry["class"] != "SpecialMesh":
-            continue
+        if entry["class"] != "SpecialMesh": continue
         parent_id = entry.get("parent")
-        if not isinstance(parent_id, int) or parent_id < 0 or parent_id >= len(instances):
-            continue
+        if not isinstance(parent_id, int) or parent_id < 0 or parent_id >= len(instances): continue
         parent = instances[parent_id]
-        if parent["class"] not in {"Part", "WedgePart", "CornerWedgePart", "TrussPart", "SpawnLocation"}:
-            continue
+        if parent["class"] not in {"Part", "WedgePart", "CornerWedgePart", "TrussPart", "SpawnLocation"}: continue
         geometry = entry.get("geometry")
-        if not isinstance(geometry, dict):
-            continue
+        if not isinstance(geometry, dict): continue
         target = parent.setdefault("geometry", {})
         if "mesh" in geometry and "mesh" not in target:
-            target["type"] = "mesh"
-            target["mesh"] = geometry["mesh"]
-        if "texture" in geometry and "texture" not in target:
-            target["texture"] = geometry["texture"]
+            target["type"] = "mesh"; target["mesh"] = geometry["mesh"]
+        if "texture" in geometry and "texture" not in target: target["texture"] = geometry["texture"]
+
+def collect_asset_dependencies(instances: list[dict[str, Any]]) -> dict[str, list[str]]:
+    """Collect deterministic, deduplicated mesh/texture references for later conversion."""
+    meshes: set[str] = set()
+    textures: set[str] = set()
+    for entry in instances:
+        geometry = entry.get("geometry")
+        if not isinstance(geometry, dict): continue
+        mesh = geometry.get("mesh")
+        texture = geometry.get("texture")
+        if isinstance(mesh, str) and mesh.strip(): meshes.add(mesh.strip())
+        if isinstance(texture, str) and texture.strip(): textures.add(texture.strip())
+    return {"meshes": sorted(meshes), "textures": sorted(textures)}
 
 def import_xml(source: Path, destination: Path) -> dict[str, Any]:
     try: root = ET.parse(source).getroot()
@@ -116,8 +122,9 @@ def import_xml(source: Path, destination: Path) -> dict[str, Any]:
     for i in instances: classes[i["class"]] = classes.get(i["class"], 0) + 1
     package = {"format": "nds-map", "version": 1,
                "source": {"filename": source.name, "extension": source.suffix.lower()},
-               "importer": {"name": "nds_import", "version": "0.6"},
+               "importer": {"name": "nds_import", "version": "0.7"},
                "summary": {"instance_count": len(instances), "classes": classes, "unsupported_classes": unsupported},
+               "assets": collect_asset_dependencies(instances),
                "instances": instances}
     destination.parent.mkdir(parents=True, exist_ok=True)
     destination.write_text(json.dumps(package, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
