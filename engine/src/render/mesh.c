@@ -71,8 +71,14 @@ nds_result nds_mesh_load_text(const char* text, nds_mesh* out_mesh)
             goto invalid;
         }
         if (section == 1) {
-            if (vi >= vertices || sscanf(p, "%f %f %f", &result.vertices[vi].x,
-                                         &result.vertices[vi].y, &result.vertices[vi].z) != 3) goto invalid;
+            float x, y, z, u, v;
+            int parsed = sscanf(p, "%f %f %f %f %f", &x, &y, &z, &u, &v);
+            if (vi >= vertices || (parsed != 3 && parsed != 5)) goto invalid;
+            result.vertices[vi].x = x;
+            result.vertices[vi].y = y;
+            result.vertices[vi].z = z;
+            result.vertices[vi].u = parsed == 5 ? u : 0.0f;
+            result.vertices[vi].v = parsed == 5 ? v : 0.0f;
             ++vi;
         } else {
             unsigned long a, b, c;
