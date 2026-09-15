@@ -24,7 +24,18 @@ Vertices currently contain position only. Indices are 16-bit and must be a multi
 
 The cache is deliberately bounded rather than growing forever. Legacy hardware has enough problems without us turning every map into an accidental memory-leak speedrun.
 
-The current GLES2 draw path can consume an `nds_mesh` supplied by a Part. The remaining integration work is to make the map/content loader resolve project-owned geometry references into cached meshes automatically.
+Map entries can now carry project-owned geometry metadata such as:
+
+```json
+"geometry": {
+  "type": "mesh",
+  "mesh": "game/content/meshes/triangle.ndsmesh"
+}
+```
+
+The native map loader retains that path on the Part, and `nds_map_resolve_meshes()` resolves it through the bounded cache. The cache must outlive the loaded Instance tree because Part mesh pointers are borrowed rather than owned.
+
+The current GLES2 draw path can consume an `nds_mesh` supplied by a Part. The render-test map exercises the complete map -> mesh metadata -> cache -> Part -> draw-list path.
 
 The importer/build pipeline can later convert source Roblox mesh data into this representation, with optional normals, UVs, materials, and compressed binary packaging added as separate versioned features.
 
