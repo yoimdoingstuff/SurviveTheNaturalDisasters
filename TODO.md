@@ -36,17 +36,17 @@ Legend:
 
 ### Early content import/bootstrap (do this before full gameplay)
 
-- [ ] Define an import workspace for locally obtained NDS game files
-- [ ] Add map/package discovery tool
-- [ ] Add initial Roblox place/model importer for locally available source files
+- [x] Define an import workspace for locally obtained NDS game files
+- [x] Add map/package discovery tool
+- [x] Add initial Roblox place/model importer for locally available source files (.rbxlx/.rbxmx)
 - [ ] Import the base Natural Disaster Survival map set as development content
-- [ ] Preserve source files outside generated/build output
-- [ ] Convert imported maps into the project-owned map/package format
+- [x] Preserve source files outside generated/build output
+- [x] Convert imported XML maps into the project-owned map/package format
 - [ ] Validate imported geometry, textures, spawn points, scripts, and metadata on Windows
-- [ ] Add placeholder/fallback geometry when an imported asset cannot be converted yet
+- [x] Add placeholder/fallback metadata for unsupported source classes instead of failing the import
 - [ ] Build a first playable imported map before implementing every engine feature
-- [ ] Track unsupported source features instead of blocking the whole import
-- [ ] Add repeatable map re-import/update workflow so imported maps can be refreshed as the importer improves
+- [x] Track unsupported source features instead of blocking the whole import
+- [x] Add repeatable map re-import/update workflow so imported maps can be refreshed as the importer improves
 - [x] Application bootstrap
 - [x] Platform abstraction layer <!-- interface + Windows backend done; other platform backends still pending -->
 - [x] File system abstraction
@@ -75,17 +75,17 @@ Legend:
 
 ## Phase 3 - Scene/Instance model
 
-- [ ] DataModel root
-- [ ] Instance base type
-- [ ] Parent/child tree
-- [ ] Name lookup
-- [ ] Folder
-- [ ] Model
-- [ ] Part
-- [ ] Spawn point
-- [ ] Camera object
-- [ ] Character object
-- [ ] Player object
+- [x] DataModel root (class supported by Instance tree)
+- [x] Instance base type
+- [x] Parent/child tree
+- [x] Name lookup
+- [x] Folder
+- [x] Model
+- [x] Part (scene class supported; geometry properties follow importer/runtime work)
+- [x] Spawn point (scene class)
+- [x] Camera object (scene class)
+- [x] Character object (scene class)
+- [x] Player object (scene class)
 - [ ] Attributes/values needed by game scripts
 - [ ] Scene serialization
 
