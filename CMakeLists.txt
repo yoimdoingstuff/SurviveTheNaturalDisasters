@@ -23,6 +23,7 @@ set(ENGINE_CORE_SOURCES
     engine/src/scene/instance_child_alias.c
     engine/src/scene/part.c
     engine/src/content/map_loader.c
+    engine/src/content/map_catalog.c
     engine/src/render/draw.c
     engine/src/render/math.c
     engine/src/render/frustum.c
@@ -119,3 +120,7 @@ add_test(NAME nds_round_test COMMAND nds_round_test)
 add_executable(nds_disaster_test engine/tests/disaster_test.c)
 target_link_libraries(nds_disaster_test PRIVATE engine_core ${ENGINE_PLATFORM_LIBS})
 add_test(NAME nds_disaster_test COMMAND nds_disaster_test)
+
+add_executable(nds_map_catalog_test engine/tests/map_catalog_test.c)
+target_link_libraries(nds_map_catalog_test PRIVATE engine_core ${ENGINE_PLATFORM_LIBS})
+add_test(NAME nds_map_catalog_test COMMAND nds_map_catalog_test)
