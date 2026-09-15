@@ -4,16 +4,13 @@
 #include "engine/core/types.h"
 #include "engine/scene/instance.h"
 #include "engine/render/mesh.h"
+#include "engine/render/texture.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-typedef struct nds_vec3 {
-    float x;
-    float y;
-    float z;
-} nds_vec3;
+typedef struct nds_vec3 { float x; float y; float z; } nds_vec3;
 
 typedef struct nds_part_properties {
     nds_vec3 position;
@@ -26,23 +23,25 @@ typedef struct nds_part_properties {
     uint8_t can_collide;
     uint8_t visible;
     const nds_mesh* mesh;
+    const nds_texture* texture;
 } nds_part_properties;
 
-nds_result nds_part_get_properties(const nds_instance* instance,
-                                   nds_part_properties* out_properties);
-nds_result nds_part_set_properties(nds_instance* instance,
-                                   const nds_part_properties* properties);
+nds_result nds_part_get_properties(const nds_instance* instance, nds_part_properties* out_properties);
+nds_result nds_part_set_properties(nds_instance* instance, const nds_part_properties* properties);
 nds_result nds_part_set_position(nds_instance* instance, nds_vec3 position);
 nds_result nds_part_get_position(const nds_instance* instance, nds_vec3* out_position);
 nds_result nds_part_set_size(nds_instance* instance, nds_vec3 size);
 nds_result nds_part_get_size(const nds_instance* instance, nds_vec3* out_size);
 nds_result nds_part_set_mesh(nds_instance* instance, const nds_mesh* mesh);
 nds_result nds_part_get_mesh(const nds_instance* instance, const nds_mesh** out_mesh);
+nds_result nds_part_set_texture(nds_instance* instance, const nds_texture* texture);
+nds_result nds_part_get_texture(const nds_instance* instance, const nds_texture** out_texture);
 
-/* Project-owned asset path retained until the content pipeline resolves it
- * through the mesh cache. The path is metadata, not an owned mesh pointer. */
+/* Asset paths are retained until the content pipeline resolves them through caches. */
 nds_result nds_part_set_mesh_asset(nds_instance* instance, const char* path);
 nds_result nds_part_get_mesh_asset(const nds_instance* instance, const char** out_path);
+nds_result nds_part_set_texture_asset(nds_instance* instance, const char* path);
+nds_result nds_part_get_texture_asset(const nds_instance* instance, const char** out_path);
 
 #ifdef __cplusplus
 }

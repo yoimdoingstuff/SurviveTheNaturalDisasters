@@ -22,25 +22,14 @@ static nds_result reserve(nds_draw_list* list, size_t needed)
 void nds_draw_list_init(nds_draw_list* list)
 {
     if (!list) return;
-    list->parts = NULL;
-    list->count = 0;
-    list->capacity = 0;
+    list->parts = NULL; list->count = 0; list->capacity = 0;
 }
-
-void nds_draw_list_reset(nds_draw_list* list)
-{
-    if (list) list->count = 0;
-}
-
+void nds_draw_list_reset(nds_draw_list* list) { if (list) list->count = 0; }
 void nds_draw_list_destroy(nds_draw_list* list)
 {
     if (!list) return;
-    free(list->parts);
-    list->parts = NULL;
-    list->count = 0;
-    list->capacity = 0;
+    free(list->parts); list->parts = NULL; list->count = 0; list->capacity = 0;
 }
-
 nds_result nds_draw_list_add_part(nds_draw_list* list, const nds_instance* instance)
 {
     nds_part_properties props;
@@ -57,14 +46,12 @@ nds_result nds_draw_list_add_part(nds_draw_list* list, const nds_instance* insta
     draw->color_rgba = props.color_rgba;
     draw->visible = props.visible;
     draw->mesh = props.mesh;
+    draw->texture = props.texture;
     return NDS_OK;
 }
-
 static nds_result collect(nds_draw_list* list, const nds_instance* instance)
 {
-    size_t i;
-    nds_instance_class class_id;
-    nds_result result;
+    size_t i; nds_instance_class class_id; nds_result result;
     if (!instance) return NDS_OK;
     class_id = nds_instance_get_class(instance);
     if (class_id == NDS_CLASS_PART || class_id == NDS_CLASS_SPAWN_POINT) {
@@ -77,7 +64,6 @@ static nds_result collect(nds_draw_list* list, const nds_instance* instance)
     }
     return NDS_OK;
 }
-
 nds_result nds_draw_list_build_from_tree(nds_draw_list* list, const nds_instance* root)
 {
     if (!list || !root) return NDS_ERR_INVALID_ARG;

@@ -5,6 +5,7 @@
 typedef struct nds_part_state {
     nds_part_properties properties;
     char* mesh_asset;
+    char* texture_asset;
 } nds_part_state;
 
 static int is_part_class(nds_instance_class c) { return c == NDS_CLASS_PART || c == NDS_CLASS_SPAWN_POINT; }
@@ -13,6 +14,7 @@ static void destroy_state(void* p)
     nds_part_state* s = (nds_part_state*)p;
     if (!s) return;
     free(s->mesh_asset);
+    free(s->texture_asset);
     free(s);
 }
 static nds_part_state* make_default(void)
@@ -25,6 +27,7 @@ static nds_part_state* make_default(void)
     s->properties.can_collide = 1;
     s->properties.visible = 1;
     s->properties.mesh = NULL;
+    s->properties.texture = NULL;
     return s;
 }
 static nds_part_state* ensure_state(nds_instance* i)
@@ -89,20 +92,37 @@ nds_result nds_part_get_mesh(const nds_instance* i, const nds_mesh** out_mesh)
     *out_mesh = p.mesh;
     return NDS_OK;
 }
-nds_result nds_part_set_mesh_asset(nds_instance* i, const char* path)
+nds_result nds_part_set_texture(nds_instance* i, const nds_texture* texture)
 {
-    nds_part_state* s = ensure_state(i);
+    nds_part_state* s = ensure_state(i); if (!s) return NDS_ERR_INVALID_ARG;
+    s->properties.texture = texture;
+    return NDS_OK;
+}
+nds_result nds_part_get_texture(const nds_instance* i, const nds_texture** out_texture)
+{
+    nds_part_properties p;
+    if (!out_texture || nds_part_get_properties(i, &p) != NDS_OK) return NDS_ERR_INVALID_ARG;
+    *out_texture = p.texture;
+    return NDS_OK;
+}
+
+static nds_result set_asset(char** slot, const char* path)
+{
     char* copy = NULL;
-    if (!s) return NDS_ERR_INVALID_ARG;
     if (path && path[0]) {
         size_t len = strlen(path);
         copy = (char*)malloc(len + 1);
         if (!copy) return NDS_ERR_UNKNOWN;
         memcpy(copy, path, len + 1);
     }
-    free(s->mesh_asset);
-    s->mesh_asset = copy;
+    free(*slot);
+    *slot = copy;
     return NDS_OK;
+}
+nds_result nds_part_set_mesh_asset(nds_instance* i, const char* path)
+{
+    nds_part_state* s = ensure_state(i); if (!s) return NDS_ERR_INVALID_ARG;
+    return set_asset(&s->mesh_asset, path);
 }
 nds_result nds_part_get_mesh_asset(const nds_instance* i, const char** out_path)
 {
@@ -110,5 +130,18 @@ nds_result nds_part_get_mesh_asset(const nds_instance* i, const char** out_path)
     if (!i || !out_path || !is_part_class(nds_instance_get_class(i))) return NDS_ERR_INVALID_ARG;
     s = (nds_part_state*)nds_instance_get_user_data(i);
     *out_path = s ? s->mesh_asset : NULL;
+    return NDS_OK;
+}
+nds_result nds_part_set_texture_asset(nds_instance* i, const char* path)
+{
+    nds_part_state* s = ensure_state(i); if (!s) return NDS_ERR_INVALID_ARG;
+    return set_asset(&s->texture_asset, path);
+}
+nds_result nds_part_get_texture_asset(const nds_instance* i, const char** out_path)
+{
+    nds_part_state* s;
+    if (!i || !out_path || !is_part_class(nds_instance_get_class(i))) return NDS_ERR_INVALID_ARG;
+    s = (nds_part_state*)nds_instance_get_user_data(i);
+    *out_path = s ? s->texture_asset : NULL;
     return NDS_OK;
 }
