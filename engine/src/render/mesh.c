@@ -26,6 +26,7 @@ static int next_line(const char** cursor, char* line, size_t capacity)
     size_t n = 0;
     if (!p || !*p) return 0;
     while (*p && *p != '\n' && n + 1 < capacity) line[n++] = *p++;
+    while (n > 0 && (line[n - 1] == '\r' || line[n - 1] == '\n')) --n;
     line[n] = '\0';
     if (*p == '\n') ++p;
     *cursor = p;
