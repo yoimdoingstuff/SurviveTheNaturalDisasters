@@ -39,6 +39,11 @@ nds_result nds_part_get_size(const nds_instance* instance, nds_vec3* out_size);
 nds_result nds_part_set_mesh(nds_instance* instance, const nds_mesh* mesh);
 nds_result nds_part_get_mesh(const nds_instance* instance, const nds_mesh** out_mesh);
 
+/* Project-owned asset path retained until the content pipeline resolves it
+ * through the mesh cache. The path is metadata, not an owned mesh pointer. */
+nds_result nds_part_set_mesh_asset(nds_instance* instance, const char* path);
+nds_result nds_part_get_mesh_asset(const nds_instance* instance, const char** out_path);
+
 #ifdef __cplusplus
 }
 #endif
