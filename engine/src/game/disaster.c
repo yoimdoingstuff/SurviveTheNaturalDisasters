@@ -54,13 +54,19 @@ static void break_map_blocks(nds_instance* root, uint32_t pulse_count)
             unsigned int pick = (unsigned int)((serial++ + pulse_count * 3u) % 7u);
             if (pick <= 2u) {
                 float wobble = (float)((int)((serial * 13u) % 11u) - 5) * 0.08f;
+                float fall = 0.35f + 0.22f * (float)pulse_count;
+                props.position.x += wobble * 1.5f;
+                props.position.y -= fall;
+                props.position.z -= wobble;
+                props.rotation.x += wobble * 7.0f + (pick == 1u ? 9.0f : -7.0f);
+                props.rotation.z -= wobble * 5.0f + (pick == 2u ? 6.0f : -5.0f);
                 props.anchored = 0;
-                props.rotation.x += wobble * 3.0f;
-                props.rotation.z -= wobble * 2.0f;
-                props.position.x += wobble;
-                props.position.z -= wobble * 0.7f;
+                if (pulse_count >= 2u) props.can_collide = 0;
                 nds_part_set_properties(child, &props);
             } else if (pulse_count >= 2u && pick == 3u) {
+                props.position.y -= 0.8f + 0.18f * (float)pulse_count;
+                props.rotation.x += 18.0f;
+                props.rotation.z -= 12.0f;
                 props.anchored = 0;
                 props.can_collide = 0;
                 props.visible = 0;
