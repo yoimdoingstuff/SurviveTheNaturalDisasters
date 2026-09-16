@@ -1,0 +1,53 @@
+name: Fix HUD buffer overflow
+
+on:
+  push:
+    branches: [ main ]
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Patch HUD buffers and bounds checks
+        shell: pwsh
+        run: |
+          $path = 'engine/src/render/gles2_backend.c'
+          $text = Get-Content -Raw -Encoding UTF8 $path
+          $old = 'static void hud_quad(nds_hud_vertex* vertices,GLushort* indices,size_t* quad_count,float x,float y,float w,float h){size_t q=*quad_count;vertices[q*4+0]=(nds_hud_vertex){x,y,0,0};vertices[q*4+1]=(nds_hud_vertex){x+w,y,1,0};vertices[q*4+2]=(nds_hud_vertex){x+w,y+h,1,1};vertices[q*4+3]=(nds_hud_vertex){x,y+h,0,1};indices[q*6+0]=(GLushort)(q*4+0);indices[q*6+1]=(GLushort)(q*4+1);indices[q*6+2]=(GLushort)(q*4+2);indices[q*6+3]=(GLushort)(q*4+0);indices[q*6+4]=(GLushort)(q*4+2);indices[q*6+5]=(GLushort)(q*4+3);*quad_count=q+1;}'
+          $new = 'static void hud_quad(nds_hud_vertex* vertices,GLushort* indices,size_t* quad_count,float x,float y,float w,float h){size_t q;if(!vertices||!indices||!quad_count||*quad_count>=8192u)return;q=*quad_count;vertices[q*4+0]=(nds_hud_vertex){x,y,0,0};vertices[q*4+1]=(nds_hud_vertex){x+w,y,1,0};vertices[q*4+2]=(nds_hud_vertex){x+w,y+h,1,1};vertices[q*4+3]=(nds_hud_vertex){x,y+h,0,1};indices[q*6+0]=(GLushort)(q*4+0);indices[q*6+1]=(GLushort)(q*4+1);indices[q*6+2]=(GLushort)(q*4+2);indices[q*6+3]=(GLushort)(q*4+0);indices[q*6+4]=(GLushort)(q*4+2);indices[q*6+5]=(GLushort)(q*4+3);*quad_count=q+1;}'
+          if (-not $text.Contains($old)) { throw 'hud_quad source not found' }
+          $text = $text.Replace($old,$new)
+          $old2 = 'nds_result nds_gles2_backend_draw_hud(nds_gles2_backend* b,const nds_hud_state* state){nds_hud_vertex vertices[4096];GLushort indices[6144];nds_hud_vertex text_vertices[4096];GLushort text_indices[6144];'
+          $new2 = 'nds_result nds_gles2_backend_draw_hud(nds_gles2_backend* b,const nds_hud_state* state){nds_hud_vertex vertices[8192*4];GLushort indices[8192*6];nds_hud_vertex text_vertices[8192*4];GLushort text_indices[8192*6];'
+          if (-not $text.Contains($old2)) { throw 'HUD buffer declarations not found' }
+          $text = $text.Replace($old2,$new2)
+          Set-Content -Path $path -Value $text -Encoding UTF8 -NoNewline
+
+      - name: Configure
+        run: cmake -S . -B build -G "Visual Studio 18 2026" -A x64
+
+      - name: Build
+        run: cmake --build build --config Release
+
+      - name: Native tests
+        run: ctest --test-dir build -C Release --output-on-failure
+
+      - name: Long runtime smoke test
+        shell: cmd
+        run: build\Release\nds_runtime.exe --smoke-test 900
+
+      - name: Commit fix and remove workflow
+        shell: pwsh
+        run: |
+          Remove-Item -Force '.github/workflows/fix-hud-buffer-overflow.yml'
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@github.com'
+          git add engine/src/render/gles2_backend.c .github/workflows/fix-hud-buffer-overflow.yml
+          git commit -m 'Fix HUD buffer overflow'
+          git push
