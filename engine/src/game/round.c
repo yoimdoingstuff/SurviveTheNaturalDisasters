@@ -76,6 +76,13 @@ void nds_round_update(nds_round* round, float delta_seconds)
     }
 }
 
+void nds_round_finish(nds_round* round, uint8_t player_survived)
+{
+    if (!round || round->state != NDS_ROUND_PLAYING) return;
+    round->player_survived = player_survived ? 1u : 0u;
+    nds_round_set_state(round, NDS_ROUND_RESULTS);
+}
+
 float nds_round_time_remaining(const nds_round* round)
 {
     float duration = nds_round_duration(round);
