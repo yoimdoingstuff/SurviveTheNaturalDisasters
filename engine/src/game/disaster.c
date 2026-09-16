@@ -1,7 +1,9 @@
 #include "engine/game/disaster.h"
+#include "engine/scene/part.h"
 
 #include <math.h>
 #include <stddef.h>
+#include <string.h>
 
 static void move_parts(nds_instance* root, float dx, float dz)
 {
@@ -10,12 +12,15 @@ static void move_parts(nds_instance* root, float dx, float dz)
     for (i = 0; i < nds_instance_child_count(root); ++i) {
         nds_instance* child = (nds_instance*)nds_instance_child_at(root, i);
         nds_part_properties props;
+        const char* name;
         if (!child) continue;
-        if (nds_instance_get_class(child) == NDS_CLASS_PART &&
-            nds_part_get_properties(child, &props) == NDS_OK && !props.anchored) {
+        name = nds_instance_get_name(child);
+        if ((nds_instance_get_class(child) == NDS_CLASS_PART) &&
+            nds_part_get_properties(child, &props) == NDS_OK && props.visible &&
+            (!name || strncmp(name, "Player", 6) != 0)) {
             props.position.x += dx;
             props.position.z += dz;
-            nds_part_set_properties(child, &props);
+            nds_part_set_position(child, props.position);
         }
         if (nds_instance_child_count(child)) move_parts(child, dx, dz);
     }
@@ -66,16 +71,16 @@ void nds_earthquake_update(nds_earthquake* earthquake, nds_player_controller* pl
     earthquake->elapsed += dt;
     earthquake->pulse_timer -= dt;
 
-    shake_x = sinf(earthquake->elapsed * 18.0f) * 0.10f;
-    shake_z = cosf(earthquake->elapsed * 15.0f) * 0.08f;
+    shake_x = sinf(earthquake->elapsed * 18.0f) * 0.16f;
+    shake_z = cosf(earthquake->elapsed * 15.0f) * 0.12f;
     move_parts(scene, shake_x - earthquake->previous_shake_x,
                shake_z - earthquake->previous_shake_z);
     earthquake->previous_shake_x = shake_x;
     earthquake->previous_shake_z = shake_z;
 
     direction = sinf(earthquake->elapsed * 18.0f);
-    player->velocity.x += direction * 1.2f * dt;
-    player->velocity.z += cosf(earthquake->elapsed * 15.0f) * 1.0f * dt;
+    player->velocity.x += direction * 1.8f * dt;
+    player->velocity.z += cosf(earthquake->elapsed * 15.0f) * 1.5f * dt;
 
     if (earthquake->pulse_timer <= 0.0f) {
         earthquake->pulse_timer += earthquake->pulse_interval;
@@ -83,6 +88,6 @@ void nds_earthquake_update(nds_earthquake* earthquake, nds_player_controller* pl
         direction = (earthquake->pulse_count & 1u) ? 1.0f : -1.0f;
         player->velocity.x += direction * 5.0f;
         player->velocity.z += (earthquake->pulse_count % 3u == 0u) ? 4.0f : -3.0f;
-        if (!player->grounded) nds_player_damage(player, 25.0f);
+        nds_player_damage(player, player->grounded ? 10.0f : 25.0f);
     }
 }
