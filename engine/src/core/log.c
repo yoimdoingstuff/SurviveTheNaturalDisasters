@@ -11,6 +11,8 @@
 #include <time.h>
 
 static nds_log_level g_min_level = NDS_LOG_DEBUG;
+static FILE* g_runtime_log_file = NULL;
+static int g_runtime_log_initialized = 0;
 
 static const char* level_name(nds_log_level level)
 {
@@ -20,6 +22,19 @@ static const char* level_name(nds_log_level level)
         case NDS_LOG_WARN:  return "WARN";
         case NDS_LOG_ERROR: return "ERROR";
         default: return "?";
+    }
+}
+
+static void ensure_runtime_log_file(void)
+{
+    if (g_runtime_log_initialized) {
+        return;
+    }
+    g_runtime_log_initialized = 1;
+    g_runtime_log_file = fopen("runtime.log", "ab");
+    if (g_runtime_log_file) {
+        fprintf(g_runtime_log_file, "\n=== runtime log started ===\n");
+        fflush(g_runtime_log_file);
     }
 }
 
@@ -46,14 +61,27 @@ void nds_log(nds_log_level level, const char* tag, const char* fmt, ...)
 
     char time_buf[16];
     strftime(time_buf, sizeof(time_buf), "%H:%M:%S", &tm_now);
+    const char* level_text = level_name(level);
+    const char* tag_text = tag ? tag : "-";
 
-    fprintf(stdout, "[%s][%s][%s] ", time_buf, level_name(level), tag ? tag : "-");
+    fprintf(stdout, "[%s][%s][%s] ", time_buf, level_text, tag_text);
+    ensure_runtime_log_file();
+    if (g_runtime_log_file) {
+        fprintf(g_runtime_log_file, "[%s][%s][%s] ", time_buf, level_text, tag_text);
+    }
 
     va_list args;
     va_start(args, fmt);
     vfprintf(stdout, fmt, args);
     va_end(args);
-
     fprintf(stdout, "\n");
     fflush(stdout);
+
+    va_start(args, fmt);
+    if (g_runtime_log_file) {
+        vfprintf(g_runtime_log_file, fmt, args);
+        fprintf(g_runtime_log_file, "\n");
+        fflush(g_runtime_log_file);
+    }
+    va_end(args);
 }
