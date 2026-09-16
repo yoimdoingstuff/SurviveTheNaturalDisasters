@@ -8,6 +8,10 @@
 
 typedef struct nds_gles2_backend nds_gles2_backend;
 
+/* Legacy HUD layout globals used by the generated backend source. */
+extern float w;
+extern float h;
+
 nds_result nds_gles2_backend_create(nds_gles2_backend** out_backend, int width, int height,
                                     float fov_y_degrees, float near_plane, float far_plane);
 void nds_gles2_backend_destroy(nds_gles2_backend* backend);
