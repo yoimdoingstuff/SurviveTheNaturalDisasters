@@ -14,31 +14,27 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Apply source patch
+        continue-on-error: true
         run: |
-          python3 - <<'PY'
+          python3 - <<'PY' > tools/ui_patch_run.txt 2>&1
           from pathlib import Path
-          p=Path('engine/include/engine/render/gles2.h')
-          s=p.read_text(encoding='utf-8')
+          import traceback
+          p=Path('engine/include/engine/render/gles2.h'); s=p.read_text(encoding='utf-8')
           old='''typedef struct nds_hud_state {\n    const nds_player_controller* player;\n    const nds_round* round;\n    const nds_disaster_system* disasters;\n} nds_hud_state;'''
           new='''typedef struct nds_hud_state {\n    const nds_player_controller* player;\n    const nds_round* round;\n    const nds_disaster_system* disasters;\n    int menu_active;\n} nds_hud_state; /* NDS_UI_WORLD_PATCH_V2 */'''
-          if old in s:
-              p.write_text(s.replace(old,new,1),encoding='utf-8')
-          else:
-              print('header already patched or changed')
-          src=Path('tools/apply_ui_world_patch.py').read_text(encoding='utf-8')
-          marker='\npatch_header()'
-          src=src[:src.index(marker)] if marker in src else src
-          ns={}; exec(compile(src,'apply_ui_world_patch.py','exec'),ns)
-          ns['MARK']='__FORCED_UI_WORLD_PATCH_APPLIED__'
-          ns['patch_app'](); ns['patch_backend'](); ns['patch_world_loader']()
-          print('SOURCE_PATCH_DONE')
+          if old in s: p.write_text(s.replace(old,new,1),encoding='utf-8')
+          src=Path('tools/apply_ui_world_patch.py').read_text(encoding='utf-8'); marker='\npatch_header()'; src=src[:src.index(marker)] if marker in src else src
+          ns={}; exec(compile(src,'apply_ui_world_patch.py','exec'),ns); ns['MARK']='__FORCED_UI_WORLD_PATCH_APPLIED__'
+          for name in ('patch_app','patch_backend','patch_world_loader'):
+              print('RUN',name,flush=True)
+              try: ns[name](); print('OK',name,flush=True)
+              except Exception: traceback.print_exc(); break
           PY
-      - name: Commit source changes
+          cat tools/ui_patch_run.txt
+      - name: Commit diagnostics
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add engine/include/engine/render/gles2.h engine/src/core/app.c engine/src/render/gles2_backend.c engine/src/content/map_loader.c
-          if git diff --cached --quiet; then echo "no source changes"; exit 0; fi
-          git diff --cached --stat
-          git commit -m "Implement visual menu, text HUD, map selection, and island water"
-          git push
+          git add tools/ui_patch_run.txt
+          git commit -m "Record UI patch run diagnostics" || true
+          git push || true
