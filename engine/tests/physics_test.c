@@ -66,12 +66,14 @@ int main(void)
     CHECK(nds_physics_update(&world, .05f) == NDS_OK);
     CHECK(body->velocity.y < 10.0f);
 
-    /* Friction should damp horizontal motion while the body is supported. */
+    /* Friction should damp horizontal motion while the body is supported.
+     * Place the box slightly into the floor so the discrete collision solver
+     * has an overlap to resolve during this frame. */
     body->velocity.x = 8.0f;
     body->velocity.y = 0.0f;
     body->velocity.z = 0.0f;
     CHECK(nds_part_get_position(box, &pos) == NDS_OK);
-    pos.y = .51f;
+    pos.y = .49f;
     CHECK(nds_part_set_position(box, pos) == NDS_OK);
     CHECK(nds_physics_update(&world, .016f) == NDS_OK);
     CHECK(fabsf(body->velocity.x) < 8.0f);
