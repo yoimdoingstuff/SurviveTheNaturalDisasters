@@ -35,6 +35,15 @@ void nds_round_init(nds_round* round)
     round->disaster = NDS_DISASTER_EARTHQUAKE;
 }
 
+void nds_round_set_durations(nds_round* round, float intermission_seconds,
+                             float playing_seconds, float results_seconds)
+{
+    if (!round) return;
+    if (intermission_seconds > 0.0f) round->intermission_duration = intermission_seconds;
+    if (playing_seconds > 0.0f) round->round_duration = playing_seconds;
+    if (results_seconds > 0.0f) round->results_duration = results_seconds;
+}
+
 void nds_round_update(nds_round* round, float delta_seconds)
 {
     float remaining;
