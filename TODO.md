@@ -13,15 +13,15 @@ These tasks are informed by classic Roblox disaster-survival design and the main
 - [~] Establish a larger, multi-zone map scale appropriate for survival gameplay
 - [~] Make playable maps primarily from individually addressable blocks/parts
 - [~] Make disaster damage visibly alter map structures
-- [~] Show the active/incoming disaster name in-game
+- [x] Show the active/incoming disaster name in-game
 - [x] Roblox-style RMB camera capture/relative-look behavior on Windows
 - [ ] Add disaster-specific environmental presentation (falling debris, wind, water, fire, sky/light changes)
 - [ ] Add multiple distinct shelters/strategic routes per map
 - [ ] Add map validation rules for minimum size, spawn safety, block granularity, and disaster interaction
-- [ ] Build a reference-informed map import/port workflow for supplied Natural Disaster Survival maps
-- [ ] Port the first supplied/reference map into project-owned .ndsmap.json data after provenance/licensing review
+- [x] Build a reference-informed map import/port workflow for supplied Natural Disaster Survival maps
+- [~] Port the first supplied/reference map into project-owned .ndsmap.json data after provenance/licensing review
 - [ ] Port additional classic maps using the same block-by-block workflow
-- [ ] Compare disaster behavior against supplied reference material and tune timing/forces
+- [~] Compare disaster behavior against supplied reference material and tune timing/forces
 - [ ] Add game tips/tutorial prompts inspired by classic disaster-survival presentation
 - [ ] Leave extension points for additional tools, achievements, and minigame-style modes after base gameplay is stable
 
@@ -55,7 +55,7 @@ These tasks are informed by classic Roblox disaster-survival design and the main
 - [x] Define an import workspace for locally obtained NDS game files
 - [x] Add map/package discovery tool
 - [x] Add initial Roblox place/model importer for locally available source files (.rbxlx/.rbxmx)
-- [ ] Import the base Natural Disaster Survival map set as development content
+- [~] Import the base Natural Disaster Survival map set as development content
 - [x] Preserve source files outside generated/build output
 - [x] Convert imported XML maps into the project-owned map/package format
 - [ ] Validate imported geometry, textures, spawn points, scripts, and metadata on Windows
@@ -94,7 +94,7 @@ These tasks are informed by classic Roblox disaster-survival design and the main
 - [ ] Basic lighting
 - [x] Camera
 - [x] Frustum culling
-- [~] Mesh loading <!-- NDSMESH parser, UV parsing, fixtures, map-reference resolution, CPU cache, draw-data propagation, and GPU buffer caching are implemented; source mesh conversion remains -->
+- [~] Mesh loading <!-- NDSMESH parser, UV parsing, fixtures, map-reference resolution, CPU cache, texture/map-reference resolution, and GPU buffer caching are implemented; source mesh conversion remains -->
 - [x] Transparency
 - [x] Persistent cube GPU buffers
 - [x] UI rendering
