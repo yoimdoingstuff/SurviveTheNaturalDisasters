@@ -2,12 +2,14 @@
 
 static const char* const MAP_PATHS[] = {
     "game/content/maps/render_test.ndsmap.json",
-    "game/content/maps/island_ruins.ndsmap.json"
+    "game/content/maps/island_ruins.ndsmap.json",
+    "game/content/maps/downtown.ndsmap.json"
 };
 
 static const char* const MAP_NAMES[] = {
     "Render Test",
-    "Island Ruins"
+    "Island Ruins",
+    "Downtown"
 };
 
 size_t nds_map_catalog_count(void)
