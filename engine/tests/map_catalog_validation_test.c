@@ -27,7 +27,7 @@ static nds_instance* find_named(nds_instance* node, const char* name)
 
 static void assert_persistent_island(nds_instance* root)
 {
-    const char* required[] = {"Ocean", "IslandBase", "IslandShore"};
+    const char* required[] = {"Ocean", "IslandBase", "IslandShore", "IslandViewTowerDeck"};
     size_t i;
     for (i = 0; i < sizeof(required) / sizeof(required[0]); ++i) {
         nds_instance* part = find_named(root, required[i]);
@@ -43,16 +43,28 @@ static void assert_persistent_island(nds_instance* root)
         nds_instance* ocean = find_named(root, "Ocean");
         nds_instance* island_base = find_named(root, "IslandBase");
         nds_instance* island_shore = find_named(root, "IslandShore");
-        nds_part_properties ocean_props, base_props, shore_props;
+        nds_instance* tower_base = find_named(root, "IslandViewTowerBase");
+        nds_instance* tower_deck = find_named(root, "IslandViewTowerDeck");
+        nds_instance* tower_roof = find_named(root, "IslandViewTowerRoof");
+        nds_part_properties ocean_props, base_props, shore_props, tower_base_props, tower_deck_props, tower_roof_props;
         assert(nds_part_get_properties(ocean, &ocean_props) == NDS_OK);
         assert(nds_part_get_properties(island_base, &base_props) == NDS_OK);
         assert(nds_part_get_properties(island_shore, &shore_props) == NDS_OK);
+        assert(nds_part_get_properties(tower_base, &tower_base_props) == NDS_OK);
+        assert(nds_part_get_properties(tower_deck, &tower_deck_props) == NDS_OK);
+        assert(nds_part_get_properties(tower_roof, &tower_roof_props) == NDS_OK);
         assert(ocean_props.can_collide == 0);
         assert(base_props.can_collide == 1);
         assert(shore_props.can_collide == 1);
+        assert(tower_base_props.can_collide == 1);
+        assert(tower_deck_props.can_collide == 1);
+        assert(tower_roof_props.can_collide == 1);
         assert(base_props.size.x > 0.0f && base_props.size.z > 0.0f);
         assert(shore_props.size.x > base_props.size.x);
         assert(shore_props.size.z > base_props.size.z);
+        assert(tower_deck_props.position.y > 5.0f);
+        assert(tower_deck_props.size.x >= 5.0f && tower_deck_props.size.z >= 5.0f);
+        assert(tower_roof_props.position.y > tower_deck_props.position.y);
     }
 }
 
@@ -69,7 +81,7 @@ int main(void)
         assert(nds_map_load_json(path, &root) == NDS_OK);
         assert(root != NULL);
         assert(nds_map_validate(root, &report) == NDS_OK);
-        assert(report.part_count >= 11);
+        assert(report.part_count >= 20);
         assert(report.spawn_count >= 1);
         assert(report.invalid_part_count == 0);
         assert(report.unsafe_spawn_count == 0);
