@@ -6,7 +6,7 @@
 int main(void)
 {
     size_t count = nds_map_catalog_count();
-    assert(count == 7);
+    assert(count == 9);
     assert(strcmp(nds_map_catalog_name(0), "Happy Home") == 0);
     assert(strcmp(nds_map_catalog_path(0), "game/content/maps/happy_home.ndsmap.json") == 0);
     assert(strcmp(nds_map_catalog_name(1), "Island Ruins") == 0);
@@ -21,12 +21,16 @@ int main(void)
     assert(strcmp(nds_map_catalog_path(5), "game/content/maps/surf_central.ndsmap.json") == 0);
     assert(strcmp(nds_map_catalog_name(6), "Fort Indestructible") == 0);
     assert(strcmp(nds_map_catalog_path(6), "game/content/maps/fort_indestructible.ndsmap.json") == 0);
+    assert(strcmp(nds_map_catalog_name(7), "Trailer Park") == 0);
+    assert(strcmp(nds_map_catalog_path(7), "game/content/maps/trailer_park.ndsmap.json") == 0);
+    assert(strcmp(nds_map_catalog_name(8), "Glass Office") == 0);
+    assert(strcmp(nds_map_catalog_path(8), "game/content/maps/glass_office.ndsmap.json") == 0);
     assert(nds_map_catalog_path(count) == NULL);
     assert(nds_map_catalog_name(count) == NULL);
     assert(nds_map_catalog_select(1) == 0);
     assert(nds_map_catalog_select(2) == 1);
-    assert(nds_map_catalog_select(7) == 6);
-    assert(nds_map_catalog_select(8) == 0);
-    assert(nds_map_catalog_select(100) == 1);
+    assert(nds_map_catalog_select(9) == 8);
+    assert(nds_map_catalog_select(10) == 0);
+    assert(nds_map_catalog_select(100) == 0);
     return 0;
 }
