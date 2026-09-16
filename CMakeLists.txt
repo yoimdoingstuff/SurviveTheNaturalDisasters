@@ -64,7 +64,6 @@ target_link_libraries(nds_frustum_test PRIVATE engine_core ${ENGINE_PLATFORM_LIB
 add_test(NAME nds_frustum_test COMMAND nds_frustum_test)
 add_executable(nds_mesh_test engine/tests/mesh_test.c)
 target_link_libraries(nds_mesh_test PRIVATE engine_core ${ENGINE_PLATFORM_LIBS})
-add_test(NAME nds_mesh_test COMMAND nds_engine_core PRIVATE engine_core ${ENGINE_PLATFORM_LIBS})
 add_test(NAME nds_mesh_test COMMAND nds_mesh_test)
 set_tests_properties(nds_mesh_test PROPERTIES WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
 add_executable(nds_mesh_cache_test engine/tests/mesh_cache_test.c)
