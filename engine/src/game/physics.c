@@ -107,6 +107,76 @@ nds_physics_body* nds_physics_find_body(nds_physics_world* w,const nds_instance*
 nds_result nds_physics_add_scene(nds_physics_world* w,nds_instance* root){if(!w||!root)return NDS_ERR_INVALID_ARG;return collect(w,root);}
 nds_result nds_physics_apply_impulse(nds_physics_world* w,nds_instance* i,nds_vec3 impulse){nds_physics_body* b;if(!w||!i)return NDS_ERR_INVALID_ARG;b=nds_physics_find_body(w,i);if(!b||!b->dynamic)return NDS_ERR_INVALID_ARG;b->velocity=addv(b->velocity,mulv(impulse,1.0f/b->mass));b->grounded=0;return NDS_OK;}
 
+nds_result nds_physics_raycast(const nds_physics_world* world, nds_vec3 origin,
+                              nds_vec3 direction, float max_distance,
+                              nds_instance** hit_instance, float* hit_distance,
+                              nds_vec3* hit_normal)
+{
+    size_t i;
+    float direction_length;
+    float nearest = max_distance;
+    nds_instance* nearest_instance = NULL;
+    nds_vec3 nearest_normal = {0, 0, 0};
+
+    if (!world || !hit_instance || !hit_distance || !hit_normal || max_distance < 0.0f)
+        return NDS_ERR_INVALID_ARG;
+    *hit_instance = NULL;
+    *hit_distance = max_distance;
+    *hit_normal = (nds_vec3){0, 0, 0};
+    direction_length = sqrtf(dotv(direction, direction));
+    if (direction_length <= 0.000001f) return NDS_ERR_INVALID_ARG;
+    direction = mulv(direction, 1.0f / direction_length);
+
+    for (i = 0; i < world->count; ++i) {
+        nds_part_properties p;
+        nds_physics_bounds b;
+        float tmin = 0.0f, tmax = nearest;
+        nds_vec3 normal = {0, 0, 0};
+        int axis;
+        if (!world->bodies[i].instance || nds_part_get_properties(world->bodies[i].instance, &p) != NDS_OK)
+            continue;
+        if (!p.can_collide || p.transparency >= 1.0f) continue;
+        bounds(&p, &b);
+
+        for (axis = 0; axis < 3; ++axis) {
+            float o = axis == 0 ? origin.x : (axis == 1 ? origin.y : origin.z);
+            float d = axis == 0 ? direction.x : (axis == 1 ? direction.y : direction.z);
+            float minv = axis == 0 ? b.minx : (axis == 1 ? b.miny : b.minz);
+            float maxv = axis == 0 ? b.maxx : (axis == 1 ? b.maxy : b.maxz);
+            if (fabsf(d) <= 0.000001f) {
+                if (o < minv || o > maxv) { tmin = 1.0f; tmax = 0.0f; break; }
+            } else {
+                float a = (minv - o) / d;
+                float c = (maxv - o) / d;
+                float enter = a < c ? a : c;
+                float exit = a < c ? c : a;
+                if (enter > tmin) {
+                    tmin = enter;
+                    normal = (nds_vec3){0, 0, 0};
+                    if (axis == 0) normal.x = d > 0.0f ? -1.0f : 1.0f;
+                    else if (axis == 1) normal.y = d > 0.0f ? -1.0f : 1.0f;
+                    else normal.z = d > 0.0f ? -1.0f : 1.0f;
+                }
+                if (exit < tmax) tmax = exit;
+                if (tmin > tmax) break;
+            }
+        }
+        if (tmin <= tmax && tmax >= 0.0f && tmin <= nearest) {
+            float hit = tmin < 0.0f ? 0.0f : tmin;
+            if (hit <= nearest) {
+                nearest = hit;
+                nearest_instance = world->bodies[i].instance;
+                nearest_normal = normal;
+            }
+        }
+    }
+
+    *hit_instance = nearest_instance;
+    *hit_distance = nearest_instance ? nearest : max_distance;
+    *hit_normal = nearest_normal;
+    return NDS_OK;
+}
+
 static void integrate_body(nds_physics_world* w,nds_physics_body* b,float dt)
 {
     nds_part_properties p;if(!b->dynamic||nds_part_get_properties(b->instance,&p)!=NDS_OK)return;
