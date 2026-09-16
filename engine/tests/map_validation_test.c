@@ -3,6 +3,7 @@
 #include "engine/scene/part.h"
 #include <assert.h>
 #include <math.h>
+#include <stdio.h>
 
 static void set_props(nds_instance* part, nds_vec3 position, nds_vec3 size, int collide)
 {
@@ -56,7 +57,6 @@ int main(void)
     assert(report.interaction_count == 1);
     assert(!nds_map_validation_has_errors(&report));
 
-    p.position = (nds_vec3){0, 100, 0};
     assert(nds_part_get_properties(button, &p) == NDS_OK);
     p.size = (nds_vec3){100, 2, 2};
     assert(nds_part_set_properties(button, &p) == NDS_OK);
@@ -64,7 +64,6 @@ int main(void)
     assert(report.non_granular_part_count == 1);
     assert(nds_map_validation_has_errors(&report));
 
-    p.position = (nds_vec3){0, 2.2f, 0};
     p.size = (nds_vec3){0, 2, 2};
     assert(nds_part_set_properties(button, &p) == NDS_OK);
     assert(nds_map_validate(scene, &report) == NDS_OK);
