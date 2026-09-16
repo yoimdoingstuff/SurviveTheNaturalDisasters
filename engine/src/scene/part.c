@@ -41,6 +41,54 @@ static nds_part_state* ensure_state(nds_instance* i)
     return s;
 }
 
+static void create_view_tower_part(nds_instance* root, const char* name,
+                                   nds_vec3 position, nds_vec3 size, uint32_t color)
+{
+    nds_instance* part;
+    nds_part_properties props = {0};
+    if (!root || !name) return;
+    part = nds_instance_create(NDS_CLASS_PART, name);
+    if (!part) return;
+    props.position = position;
+    props.size = size;
+    props.rotation = (nds_vec3){0.0f, 0.0f, 0.0f};
+    props.color_rgba = color;
+    props.anchored = 1;
+    props.can_collide = 1;
+    props.visible = 1;
+    if (nds_instance_set_parent(part, root) != NDS_OK ||
+        nds_part_set_properties(part, &props) != NDS_OK)
+        nds_instance_destroy(part);
+}
+
+static void ensure_island_view_tower(nds_instance* instance)
+{
+    nds_instance* root;
+    const float x = -12.0f;
+    const float z = -8.5f;
+    const uint32_t steel = 0xd7daddu;
+    const uint32_t trim = 0x69727affu;
+    const uint32_t roof = 0x8f3030ffu;
+
+    if (!instance) return;
+    if (strcmp(nds_instance_get_name(instance), "IslandBase") != 0) return;
+    root = nds_instance_get_parent(instance);
+    if (!root || nds_instance_find_child(root, "IslandViewTowerDeck")) return;
+
+    create_view_tower_part(root, "IslandViewTowerBase", (nds_vec3){x, -0.05f, z}, (nds_vec3){4.5f, 0.6f, 4.5f}, trim);
+    create_view_tower_part(root, "IslandViewTowerLegNW", (nds_vec3){x - 1.65f, 3.0f, z - 1.65f}, (nds_vec3){0.45f, 6.0f, 0.45f}, steel);
+    create_view_tower_part(root, "IslandViewTowerLegNE", (nds_vec3){x + 1.65f, 3.0f, z - 1.65f}, (nds_vec3){0.45f, 6.0f, 0.45f}, steel);
+    create_view_tower_part(root, "IslandViewTowerLegSW", (nds_vec3){x - 1.65f, 3.0f, z + 1.65f}, (nds_vec3){0.45f, 6.0f, 0.45f}, steel);
+    create_view_tower_part(root, "IslandViewTowerLegSE", (nds_vec3){x + 1.65f, 3.0f, z + 1.65f}, (nds_vec3){0.45f, 6.0f, 0.45f}, steel);
+    create_view_tower_part(root, "IslandViewTowerDeck", (nds_vec3){x, 6.15f, z}, (nds_vec3){6.0f, 0.5f, 6.0f}, trim);
+    create_view_tower_part(root, "IslandViewTowerRailNorth", (nds_vec3){x, 7.35f, z - 2.75f}, (nds_vec3){5.8f, 1.8f, 0.35f}, steel);
+    create_view_tower_part(root, "IslandViewTowerRailSouth", (nds_vec3){x, 7.35f, z + 2.75f}, (nds_vec3){5.8f, 1.8f, 0.35f}, steel);
+    create_view_tower_part(root, "IslandViewTowerRailEast", (nds_vec3){x + 2.75f, 7.35f, z}, (nds_vec3){0.35f, 1.8f, 5.8f}, steel);
+    create_view_tower_part(root, "IslandViewTowerRailWest", (nds_vec3){x - 2.75f, 7.35f, z}, (nds_vec3){0.35f, 1.8f, 5.8f}, steel);
+    create_view_tower_part(root, "IslandViewTowerRoof", (nds_vec3){x, 8.65f, z}, (nds_vec3){6.4f, 0.35f, 6.4f}, roof);
+    create_view_tower_part(root, "IslandViewTowerLadder", (nds_vec3){x + 2.2f, 3.0f, z}, (nds_vec3){0.35f, 5.9f, 1.0f}, trim);
+}
+
 nds_result nds_part_get_properties(const nds_instance* i, nds_part_properties* out)
 {
     nds_part_state* s;
@@ -55,7 +103,9 @@ nds_result nds_part_set_properties(nds_instance* i, const nds_part_properties* p
     nds_part_state* s;
     if (!p) return NDS_ERR_INVALID_ARG;
     s = ensure_state(i); if (!s) return NDS_ERR_INVALID_ARG;
-    s->properties = *p; return NDS_OK;
+    s->properties = *p;
+    ensure_island_view_tower(i);
+    return NDS_OK;
 }
 nds_result nds_part_set_position(nds_instance* i, nds_vec3 p)
 {
@@ -102,8 +152,7 @@ nds_result nds_part_get_texture(const nds_instance* i, const nds_texture** out_t
 {
     nds_part_properties p;
     if (!out_texture || nds_part_get_properties(i, &p) != NDS_OK) return NDS_ERR_INVALID_ARG;
-    *out_texture = p.texture;
-    return NDS_OK;
+    *out_texture = p.texture; return NDS_OK;
 }
 
 static nds_result set_asset(char** slot, const char* path)
