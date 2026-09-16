@@ -1,5 +1,6 @@
 #include "engine/render/gles2.h"
 #include "gles2_backend.h"
+#include "engine/render/gles2_ui.h"
 #include "engine/core/log.h"
 
 #include <stdlib.h>
@@ -69,9 +70,13 @@ nds_result nds_gles2_renderer_draw_parts(nds_gles2_renderer* renderer,
 nds_result nds_gles2_renderer_draw_hud(nds_gles2_renderer* renderer,
                                        const nds_hud_state* state)
 {
+    nds_result rc;
     if (!renderer || !state) return NDS_ERR_INVALID_ARG;
     if (renderer->frame_count < 5u) NDS_LOGI("gles2", "frame %u: draw_hud menu=%d", renderer->frame_count + 1u, state->menu_active);
-    return nds_gles2_backend_draw_hud(renderer->backend, state);
+    rc = nds_gles2_backend_draw_hud(renderer->backend, state);
+    if (rc != NDS_OK) return rc;
+    nds_gles2_ui_draw(renderer->desc.width, renderer->desc.height, state);
+    return NDS_OK;
 }
 
 nds_result nds_gles2_renderer_end(nds_gles2_renderer* renderer)
