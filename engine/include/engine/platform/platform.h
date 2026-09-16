@@ -10,10 +10,12 @@ void platform_shutdown(void);
 typedef struct platform_window_desc { const char* title; int width; int height; int resizable; } platform_window_desc;
 nds_result platform_create_window(const platform_window_desc* desc);
 void platform_destroy_window(void);
+void platform_set_window_title(const char* title);
 void platform_get_window_size(int* out_width,int* out_height);
 void platform_present(void);
 int platform_poll_events(void);
 int platform_quit_requested(void);
+void platform_request_quit(void);
 
 typedef enum platform_key {
     PLATFORM_KEY_UNKNOWN=0, PLATFORM_KEY_ESCAPE, PLATFORM_KEY_W, PLATFORM_KEY_A,
