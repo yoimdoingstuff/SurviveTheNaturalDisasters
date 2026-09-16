@@ -23,6 +23,14 @@ static int g_mouse_y = 0;
 static int g_mouse_buttons[3];
 static LARGE_INTEGER g_perf_frequency;
 
+typedef HGLRC (WINAPI *PFNWGLCREATECONTEXTATTRIBSARBPROC)(HDC, HGLRC, const int*);
+#define WGL_CONTEXT_MAJOR_VERSION_ARB 0x2091
+#define WGL_CONTEXT_MINOR_VERSION_ARB 0x2092
+#define WGL_CONTEXT_FLAGS_ARB 0x2094
+#define WGL_CONTEXT_PROFILE_MASK_ARB 0x9126
+#define WGL_CONTEXT_CORE_PROFILE_BIT_ARB 0x00000001
+#define WGL_CONTEXT_COMPATIBILITY_PROFILE_BIT_ARB 0x00000002
+
 static platform_key win32_vk_to_platform_key(int vk)
 {
     switch (vk) {
@@ -155,17 +163,46 @@ nds_result platform_gl_context_create(void)
 {
     if (!g_hdc) return NDS_ERR_INIT_FAILED;
     if (g_gl_context) return NDS_OK;
+
     PIXELFORMATDESCRIPTOR pfd;
-    memset(&pfd, 0, sizeof(pfd)); pfd.nSize = sizeof(pfd); pfd.nVersion = 1;
+    memset(&pfd, 0, sizeof(pfd));
+    pfd.nSize = sizeof(pfd); pfd.nVersion = 1;
     pfd.dwFlags = PFD_DRAW_TO_WINDOW | PFD_SUPPORT_OPENGL | PFD_DOUBLEBUFFER;
     pfd.iPixelType = PFD_TYPE_RGBA; pfd.cColorBits = 32; pfd.cDepthBits = 24; pfd.cAlphaBits = 8;
     int format = ChoosePixelFormat(g_hdc, &pfd);
     if (!format || !SetPixelFormat(g_hdc, format, &pfd)) return NDS_ERR_INIT_FAILED;
-    g_gl_context = wglCreateContext(g_hdc);
-    if (!g_gl_context || !wglMakeCurrent(g_hdc, g_gl_context)) {
-        if (g_gl_context) { wglDeleteContext(g_gl_context); g_gl_context = NULL; }
+
+    /* Windows' built-in WGL implementation only exposes an OpenGL 1.1
+     * context directly. Bootstrap it long enough to obtain the WGL_ARB_create_context
+     * entry point, then replace it with a 2.1 compatibility context so the renderer's
+     * GLSL 1.20 shaders and buffer APIs are available on CI and normal Windows GPUs. */
+    HGLRC bootstrap = wglCreateContext(g_hdc);
+    if (!bootstrap || !wglMakeCurrent(g_hdc, bootstrap)) {
+        if (bootstrap) wglDeleteContext(bootstrap);
         return NDS_ERR_INIT_FAILED;
     }
+
+    PFNWGLCREATECONTEXTATTRIBSARBPROC create_context =
+        (PFNWGLCREATECONTEXTATTRIBSARBPROC)wglGetProcAddress("wglCreateContextAttribsARB");
+    if (create_context) {
+        const int attribs[] = {
+            WGL_CONTEXT_MAJOR_VERSION_ARB, 2,
+            WGL_CONTEXT_MINOR_VERSION_ARB, 1,
+            WGL_CONTEXT_PROFILE_MASK_ARB, WGL_CONTEXT_COMPATIBILITY_PROFILE_BIT_ARB,
+            0
+        };
+        HGLRC modern = create_context(g_hdc, NULL, attribs);
+        if (modern && wglMakeCurrent(g_hdc, modern)) {
+            wglDeleteContext(bootstrap);
+            g_gl_context = modern;
+        } else {
+            if (modern) wglDeleteContext(modern);
+            g_gl_context = bootstrap;
+        }
+    } else {
+        g_gl_context = bootstrap;
+    }
+
     NDS_LOGI(TAG, "OpenGL context created: %s", (const char*)glGetString(GL_VERSION));
     return NDS_OK;
 }
