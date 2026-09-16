@@ -31,7 +31,8 @@ void platform_set_window_title(const char* title){if(g_hwnd)SetWindowTextA(g_hwn
 void platform_get_window_size(int* out_width,int* out_height){if(!g_hwnd){if(out_width)*out_width=0;if(out_height)*out_height=0;return;}RECT rc;GetClientRect(g_hwnd,&rc);if(out_width)*out_width=rc.right-rc.left;if(out_height)*out_height=rc.bottom-rc.top;}
 void platform_present(void){platform_gl_swap_buffers();}
 int platform_poll_events(void){MSG msg;while(PeekMessageA(&msg,NULL,0,0,PM_REMOVE)){if(msg.message==WM_QUIT)g_quit_requested=1;TranslateMessage(&msg);DispatchMessageA(&msg);}return g_quit_requested;}
-int platform_quit_requested(void){return g_quit_requested;}void platform_request_quit(void){g_quit_requested=1;}int platform_is_key_down(platform_key key){return key>=0&&key<PLATFORM_KEY_COUNT?g_key_state[key]:0;}
+int platform_quit_requested(void){return g_quit_requested;}void platform_request_quit(void){g_quit_requested=1;}
+int platform_is_key_down(platform_key key){if(key==PLATFORM_KEY_Q&&g_mouse_wheel_delta>0){--g_mouse_wheel_delta;return 1;}if(key==PLATFORM_KEY_E&&g_mouse_wheel_delta<0){++g_mouse_wheel_delta;return 1;}return key>=0&&key<PLATFORM_KEY_COUNT?g_key_state[key]:0;}
 void platform_get_mouse_position(int* out_x,int* out_y){if(g_mouse_capture){if(out_x)*out_x=g_mouse_virtual_x;if(out_y)*out_y=g_mouse_virtual_y;return;}if(out_x)*out_x=g_mouse_x;if(out_y)*out_y=g_mouse_y;}
 int platform_is_mouse_button_down(int button_index){return button_index>=0&&button_index<3?g_mouse_buttons[button_index]:0;}
 int platform_consume_mouse_wheel(void){int delta=g_mouse_wheel_delta;g_mouse_wheel_delta=0;return delta;}
