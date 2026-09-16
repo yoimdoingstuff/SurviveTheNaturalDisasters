@@ -55,6 +55,18 @@ Legend:
 - [x] Configuration system
 - [x] Basic memory/performance instrumentation
 
+### Roblox avatar/content import
+- [x] Add XML Roblox avatar importer (.rbxmx/.rbxlx)
+- [x] Detect and preserve Roblox Accessory instances
+- [x] Preserve avatar body-part and Humanoid metadata
+- [x] Collect avatar mesh/texture/clothing dependencies
+- [~] Runtime avatar package loader and attachment system
+- [ ] Binary .rbxm/.rbxl avatar decoding
+- [ ] Avatar mesh conversion to project-owned mesh format
+- [ ] Avatar texture conversion to project-owned texture format
+- [ ] Basic legacy-compatible avatar rig
+- [ ] Character animation conversion
+
 ## Phase 2 - Rendering
 - [x] Define renderer interface and scene draw data
 - [~] OpenGL ES 2 renderer
@@ -144,12 +156,12 @@ Legend:
 - [ ] Script compatibility test suite
 
 ## Phase 7 - Asset/content pipeline
-- [ ] Complete NDS map import pipeline
+- [~] Complete NDS map import pipeline
 - [ ] Convert source meshes into project mesh format
 - [ ] Complete texture conversion and references
 - [ ] Material definitions
-- [ ] Asset dependency manifest
-- [ ] Asset IDs/path normalization
+- [x] Asset dependency manifest
+- [~] Asset IDs/path normalization
 - [ ] Spawn/map metadata conversion
 - [ ] Sound asset conversion
 - [ ] Animation asset conversion
@@ -158,6 +170,8 @@ Legend:
 - [ ] Deterministic package builds
 - [x] Re-import/update command
 - [~] Versioned game/content package format
+- [~] Avatar/accessory asset conversion
+- [~] Avatar package installation into player characters
 
 ## Phase 8 - Audio and presentation
 - [ ] Audio abstraction
