@@ -1,13 +1,13 @@
 #include "engine/content/map_catalog.h"
 
+/* Render Test remains available as a development asset, but is not part of the
+ * normal survival rotation. */
 static const char* const MAP_PATHS[] = {
-    "game/content/maps/render_test.ndsmap.json",
     "game/content/maps/island_ruins.ndsmap.json",
     "game/content/maps/downtown.ndsmap.json"
 };
 
 static const char* const MAP_NAMES[] = {
-    "Render Test",
     "Island Ruins",
     "Downtown"
 };
