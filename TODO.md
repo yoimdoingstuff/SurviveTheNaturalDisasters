@@ -41,7 +41,7 @@ Legend:
 - [x] Convert imported XML maps into the project-owned map/package format
 - [ ] Validate imported geometry, textures, spawn points, scripts, and metadata on Windows
 - [x] Add placeholder/fallback metadata for unsupported source classes instead of failing the import
-- [ ] Build a first playable imported map before implementing every engine feature
+- [x] Build a first playable imported/development map before implementing every engine feature
 - [x] Track unsupported source features instead of blocking the whole import
 - [x] Add repeatable map re-import/update workflow
 - [x] Add native runtime loader for the project-owned nds-map JSON format
@@ -94,9 +94,9 @@ Legend:
 - [ ] Transform hierarchy and world/local transforms
 - [ ] Part/BasePart property model
 - [ ] Model/Folder/Workspace containers
-- [ ] SpawnLocation and spawn-point support
+- [x] SpawnLocation and spawn-point support
 - [ ] Script/LocalScript/ModuleScript instance types
-- [ ] Clone/destroy/reparent operations
+- [x] Clone/destroy/reparent operations
 - [ ] Signals/events and connections
 - [ ] Collection/tag support
 - [ ] Instance serialization/deserialization
@@ -162,7 +162,7 @@ Legend:
 - [ ] Material definitions
 - [x] Asset dependency manifest
 - [~] Asset IDs/path normalization
-- [ ] Spawn/map metadata conversion
+- [x] Spawn/map metadata conversion
 - [ ] Sound asset conversion
 - [ ] Animation asset conversion
 - [ ] Script extraction/import workflow
@@ -189,36 +189,36 @@ Legend:
 - [ ] Pause/options UI
 
 ## Phase 9 - NDS gameplay prototype
-- [~] Implement round state machine
-- [~] Intermission/countdown
+- [x] Implement round state machine
+- [x] Intermission/countdown
 - [x] Map selection
 - [x] Disaster selection/randomization <!-- deterministic two-disaster rotation currently implemented -->
 - [x] Disaster lifecycle API <!-- Earthquake and Windstorm are integrated -->
 - [x] First disaster implementation <!-- Earthquake prototype -->
-- [~] Second disaster implementation <!-- Windstorm prototype -->
+- [~] Second disaster implementation <!-- Windstorm prototype with loose debris displacement/tumbling -->
 - [x] Player survival/death tracking
-- [~] Round completion/results
-- [ ] One complete playable map
+- [x] Round completion/results
+- [x] One complete playable development map
 - [~] Multiple disaster prototypes
-- [~] Offline single-player round using the same simulation interfaces intended for multiplayer
+- [x] Offline single-player round using the same simulation interfaces intended for multiplayer
 - [x] Disaster warning phase
-- [ ] Validate complete end-to-end round
+- [~] Validate complete end-to-end round
 
 ## Phase 10 - Base game systems
-- [ ] Multiple NDS maps
+- [x] Multiple NDS development maps
 - [~] Multiple disaster types
 - [ ] Disaster configuration/settings
-- [ ] Round timing configuration
-- [~] Spawn selection
-- [~] Player elimination/survival logic
+- [~] Round timing configuration
+- [x] Spawn selection
+- [x] Player elimination/survival logic
 - [ ] Spectating
-- [ ] Results screen
+- [~] Results screen <!-- result state and HUD result data exist; dedicated presentation remains -->
 - [x] Base HUD
 - [ ] Audio integration
 - [ ] Save/config support
 - [ ] Local settings persistence
 - [ ] Basic statistics needed by the base game
-- [ ] Complete recognizable NDS gameplay loop
+- [~] Complete recognizable NDS gameplay loop
 
 ## Phase 11 - Menu and local lobby
 - [ ] Main menu
