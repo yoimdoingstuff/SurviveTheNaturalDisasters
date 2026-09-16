@@ -35,6 +35,7 @@ int main(void)
     nds_instance* left_arm;
     nds_instance* right_arm;
     nds_part_properties torso_props, left_props, right_props;
+    float start_x, start_z, arm_start_z;
 
     nds_player_init(&player, scene);
     assert(player.alive);
@@ -67,6 +68,26 @@ int main(void)
     assert(nds_part_get_properties(right_arm, &right_props) == NDS_OK);
     assert(left_props.position.x < player.position.x);
     assert(right_props.position.x > player.position.x);
+
+    /* WASD follows the camera rather than the avatar's old world axes. */
+    start_x = player.position.x;
+    start_z = player.position.z;
+    nds_player_rotate_camera(&player, 90.0f, 0.0f);
+    nds_player_update(&player, scene, 0.1f, 1, 0, 0, 0, 0);
+    assert(player.position.x < start_x - 0.1f);
+    assert(fabsf(player.position.z - start_z) < 0.1f);
+
+    /* The walk cycle moves limbs along the facing direction while retaining
+       their left/right shoulder positions, instead of pulling them inward. */
+    assert(nds_part_get_properties(left_arm, &left_props) == NDS_OK);
+    assert(nds_part_get_properties(right_arm, &right_props) == NDS_OK);
+    arm_start_z = left_props.position.z;
+    nds_player_update_visual(&player, scene);
+    assert(nds_part_get_properties(left_arm, &left_props) == NDS_OK);
+    assert(nds_part_get_properties(right_arm, &right_props) == NDS_OK);
+    assert(left_props.position.x < player.position.x);
+    assert(right_props.position.x > player.position.x);
+    assert(fabsf(left_props.position.z - arm_start_z) > 0.001f || fabsf(right_props.position.z - player.position.z) > 0.001f);
 
     nds_camera_init(&camera);
     nds_player_apply_camera(&player, &camera);
