@@ -12,7 +12,7 @@ set(ENGINE_CORE_SOURCES
     engine/src/game/player.c engine/src/game/round.c engine/src/game/disaster.c engine/src/game/disaster_system.c engine/src/game/physics.c engine/src/game/stats.c engine/src/game/save.c
     engine/src/scene/instance.c engine/src/scene/instance_child_alias.c engine/src/scene/part.c engine/src/content/map_loader.c engine/src/content/rbxlx_loader.c engine/src/content/map_catalog.c
     engine/src/render/draw.c engine/src/render/math.c engine/src/render/frustum.c engine/src/render/camera.c engine/src/render/mesh.c engine/src/render/mesh_cache.c
-    engine/src/render/texture.c engine/src/render/texture_cache.c engine/src/render/renderer.c engine/src/render/gles2.c)
+    engine/src/render/texture.c engine/src/render/texture_cache.c engine/src/render/renderer.c engine/src/render/gles2.c engine/src/render/gles2_hud_globals.c)
 if(WIN32)
     list(APPEND ENGINE_CORE_SOURCES engine/src/render/gles2_backend.c)
     set(ENGINE_PLATFORM_SOURCES engine/src/platform/windows/platform_windows.c)
@@ -56,7 +56,6 @@ set_tests_properties(nds_rbxlx_loader_test PROPERTIES WORKING_DIRECTORY "${CMAKE
 add_executable(nds_draw_list_test engine/tests/draw_list_test.c)
 target_link_libraries(nds_draw_list_test PRIVATE engine_core ${ENGINE_PLATFORM_LIBS})
 add_test(NAME nds_draw_list_test COMMAND nds_draw_list_test)
-set_tests_properties(nds_draw_list_test PROPERTIES WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
 add_executable(nds_render_math_test engine/tests/render_math_test.c)
 target_link_libraries(nds_render_math_test PRIVATE engine_core ${ENGINE_PLATFORM_LIBS})
 add_test(NAME nds_render_math_test COMMAND nds_render_math_test)
@@ -65,6 +64,7 @@ target_link_libraries(nds_frustum_test PRIVATE engine_core ${ENGINE_PLATFORM_LIB
 add_test(NAME nds_frustum_test COMMAND nds_frustum_test)
 add_executable(nds_mesh_test engine/tests/mesh_test.c)
 target_link_libraries(nds_mesh_test PRIVATE engine_core ${ENGINE_PLATFORM_LIBS})
+add_test(NAME nds_mesh_test COMMAND nds_engine_core PRIVATE engine_core ${ENGINE_PLATFORM_LIBS})
 add_test(NAME nds_mesh_test COMMAND nds_mesh_test)
 set_tests_properties(nds_mesh_test PROPERTIES WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
 add_executable(nds_mesh_cache_test engine/tests/mesh_cache_test.c)
