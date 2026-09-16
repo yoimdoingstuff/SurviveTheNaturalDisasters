@@ -1,11 +1,13 @@
 #include "engine/content/map_catalog.h"
 
 static const char* const MAP_PATHS[] = {
-    "game/content/maps/render_test.ndsmap.json"
+    "game/content/maps/render_test.ndsmap.json",
+    "game/content/maps/island_ruins.ndsmap.json"
 };
 
 static const char* const MAP_NAMES[] = {
-    "Render Test"
+    "Render Test",
+    "Island Ruins"
 };
 
 size_t nds_map_catalog_count(void)
