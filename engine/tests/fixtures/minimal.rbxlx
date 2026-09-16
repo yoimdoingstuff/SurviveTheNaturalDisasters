@@ -1,0 +1,27 @@
+<roblox version="4">
+<Item class="Part" referent="1">
+<Properties>
+<bool name="Anchored">true</bool>
+<bool name="CanCollide">true</bool>
+<Color3uint8 name="Color3uint8">4284917426</Color3uint8>
+<CoordinateFrame name="CFrame">
+<X>2</X><Y>3</Y><Z>4</Z>
+<R00>1</R00><R01>0</R01><R02>0</R02>
+<R10>0</R10><R11>1</R11><R12>0</R12>
+<R20>0</R20><R21>0</R21><R22>1</R22>
+</CoordinateFrame>
+<string name="Name">TestPart</string>
+<float name="Transparency">0</float>
+<Vector3 name="size"><X>6</X><Y>2</Y><Z>4</Z></Vector3>
+</Properties>
+</Item>
+<Item class="SpawnLocation" referent="2">
+<Properties>
+<bool name="Anchored">true</bool>
+<bool name="CanCollide">false</bool>
+<CoordinateFrame name="CFrame"><X>0</X><Y>1</Y><Z>0</Z><R00>1</R00><R01>0</R01><R02>0</R02><R10>0</R10><R11>1</R11><R12>0</R12><R20>0</R20><R21>0</R21><R22>1</R22></CoordinateFrame>
+<string name="Name">Spawn</string>
+<Vector3 name="size"><X>2</X><Y>1</Y><Z>2</Z></Vector3>
+</Properties>
+</Item>
+</roblox>
