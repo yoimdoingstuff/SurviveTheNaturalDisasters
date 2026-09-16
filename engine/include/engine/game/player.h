@@ -20,6 +20,7 @@ typedef struct nds_player_controller {
     float health;
     float camera_yaw;
     float camera_pitch;
+    float camera_distance;
     float facing_yaw;
     float animation_time;
     uint8_t grounded;
@@ -36,6 +37,7 @@ void nds_player_damage(nds_player_controller* player, float amount);
 nds_result nds_player_attach_visual(nds_player_controller* player, nds_instance* scene);
 void nds_player_update_visual(const nds_player_controller* player, nds_instance* scene);
 void nds_player_rotate_camera(nds_player_controller* player, float yaw_delta, float pitch_delta);
+void nds_player_zoom_camera(nds_player_controller* player, float zoom_delta);
 void nds_player_set_third_person(nds_player_controller* player, int enabled);
 
 #ifdef __cplusplus
