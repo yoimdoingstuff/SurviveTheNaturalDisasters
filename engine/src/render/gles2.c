@@ -60,6 +60,13 @@ nds_result nds_gles2_renderer_draw_parts(nds_gles2_renderer* renderer,
     return nds_gles2_backend_draw_parts(renderer->backend, list, camera);
 }
 
+nds_result nds_gles2_renderer_draw_hud(nds_gles2_renderer* renderer,
+                                       const nds_hud_state* state)
+{
+    if (!renderer || !state) return NDS_ERR_INVALID_ARG;
+    return nds_gles2_backend_draw_hud(renderer->backend, state);
+}
+
 nds_result nds_gles2_renderer_end(nds_gles2_renderer* renderer)
 {
     if (!renderer) return NDS_ERR_INVALID_ARG;
