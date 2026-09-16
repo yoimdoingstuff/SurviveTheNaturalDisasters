@@ -5,6 +5,17 @@
 #include <stddef.h>
 #include <string.h>
 
+static int protected_part_name(const char* name)
+{
+    if (!name) return 0;
+    if (strncmp(name, "Player", 6) == 0) return 1;
+    if (strcmp(name, "Shelter") == 0 || strcmp(name, "ShelterRoof") == 0) return 1;
+    if (strcmp(name, "Spawn") == 0 || strcmp(name, "Ocean") == 0) return 1;
+    if (strcmp(name, "IslandBase") == 0 || strcmp(name, "IslandShore") == 0) return 1;
+    if (strncmp(name, "Island", 6) == 0) return 1;
+    return 0;
+}
+
 static void move_parts(nds_instance* root, float dx, float dz)
 {
     size_t i;
@@ -17,24 +28,13 @@ static void move_parts(nds_instance* root, float dx, float dz)
         name = nds_instance_get_name(child);
         if ((nds_instance_get_class(child) == NDS_CLASS_PART) &&
             nds_part_get_properties(child, &props) == NDS_OK && props.visible &&
-            (!name || strncmp(name, "Player", 6) != 0)) {
+            !protected_part_name(name)) {
             props.position.x += dx;
             props.position.z += dz;
             nds_part_set_position(child, props.position);
         }
         if (nds_instance_child_count(child)) move_parts(child, dx, dz);
     }
-}
-
-static int protected_part_name(const char* name)
-{
-    if (!name) return 0;
-    if (strncmp(name, "Player", 6) == 0) return 1;
-    if (strcmp(name, "Shelter") == 0 || strcmp(name, "ShelterRoof") == 0) return 1;
-    if (strcmp(name, "Spawn") == 0 || strcmp(name, "Ocean") == 0) return 1;
-    if (strcmp(name, "IslandBase") == 0 || strcmp(name, "IslandShore") == 0) return 1;
-    if (strncmp(name, "Island", 6) == 0) return 1;
-    return 0;
 }
 
 static void break_map_blocks(nds_instance* root, uint32_t pulse_count)
