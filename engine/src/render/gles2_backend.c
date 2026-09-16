@@ -14,6 +14,7 @@ typedef ptrdiff_t GLsizeiptr;
 #define GL_ARRAY_BUFFER 0x8892
 #define GL_ELEMENT_ARRAY_BUFFER 0x8893
 #define GL_STATIC_DRAW 0x88E4
+#define GL_STREAM_DRAW 0x88E0
 #define GL_VERTEX_SHADER 0x8B31
 #define GL_FRAGMENT_SHADER 0x8B30
 #define GL_COMPILE_STATUS 0x8B81
@@ -37,7 +38,7 @@ typedef void (*PFNGLGETSHADERINFOLOGPROC)(GLuint, GLsizei, GLsizei*, GLchar*);
 typedef void (*PFNGLDELETESHADERPROC)(GLuint);
 typedef GLuint (*PFNGLCREATEPROGRAMPROC)(void);
 typedef void (*PFNGLATTACHSHADERPROC)(GLuint, GLuint);
-typedef void (*PFNGLINKPROGRAMPROC)(GLuint);
+typedef void (*PFNGLLINKPROGRAMPROC)(GLuint);
 typedef void (*PFNGLGETPROGRAMIVPROC)(GLuint, GLenum, GLint*);
 typedef void (*PFNGLGETPROGRAMINFOLOGPROC)(GLuint, GLsizei, GLsizei*, GLchar*);
 typedef void (*PFNGLDELETEPROGRAMPROC)(GLuint);
@@ -70,7 +71,7 @@ typedef struct nds_gl_api {
     PFNGLDELETESHADERPROC glDeleteShader;
     PFNGLCREATEPROGRAMPROC glCreateProgram;
     PFNGLATTACHSHADERPROC glAttachShader;
-    PFNGLINKPROGRAMPROC glLinkProgram;
+    PFNGLLINKPROGRAMPROC glLinkProgram;
     PFNGLGETPROGRAMIVPROC glGetProgramiv;
     PFNGLGETPROGRAMINFOLOGPROC glGetProgramInfoLog;
     PFNGLDELETEPROGRAMPROC glDeleteProgram;
@@ -123,14 +124,13 @@ struct nds_gles2_backend {
     size_t texture_cache_count;
 };
 
-/* 24 vertices, one four-vertex quad per face, with face-local 0..1 UVs. */
 static const GLfloat cube_vertices[] = {
-    /* front */  -0.5f,-0.5f, 0.5f, 0.0f,0.0f,   0.5f,-0.5f, 0.5f, 1.0f,0.0f,   0.5f, 0.5f, 0.5f, 1.0f,1.0f,  -0.5f, 0.5f, 0.5f, 0.0f,1.0f,
-    /* back */    0.5f,-0.5f,-0.5f, 0.0f,0.0f,  -0.5f,-0.5f,-0.5f, 1.0f,0.0f,  -0.5f, 0.5f,-0.5f, 1.0f,1.0f,   0.5f, 0.5f,-0.5f, 0.0f,1.0f,
-    /* top */    -0.5f, 0.5f,-0.5f, 0.0f,0.0f,  -0.5f, 0.5f, 0.5f, 1.0f,0.0f,   0.5f, 0.5f, 0.5f, 1.0f,1.0f,   0.5f, 0.5f,-0.5f, 0.0f,1.0f,
-    /* bottom */ -0.5f,-0.5f, 0.5f, 0.0f,0.0f,   0.5f,-0.5f, 0.5f, 1.0f,0.0f,   0.5f,-0.5f,-0.5f, 1.0f,1.0f,  -0.5f,-0.5f,-0.5f, 0.0f,1.0f,
-    /* right */   0.5f,-0.5f, 0.5f, 0.0f,0.0f,   0.5f, 0.5f, 0.5f, 1.0f,0.0f,   0.5f, 0.5f,-0.5f, 1.0f,1.0f,   0.5f,-0.5f,-0.5f, 0.0f,1.0f,
-    /* left */   -0.5f,-0.5f,-0.5f, 0.0f,0.0f,  -0.5f, 0.5f,-0.5f, 1.0f,0.0f,  -0.5f, 0.5f, 0.5f, 1.0f,1.0f,  -0.5f,-0.5f, 0.5f, 0.0f,1.0f
+    -0.5f,-0.5f, 0.5f, 0.0f,0.0f,   0.5f,-0.5f, 0.5f, 1.0f,0.0f,   0.5f, 0.5f, 0.5f, 1.0f,1.0f,  -0.5f, 0.5f, 0.5f, 0.0f,1.0f,
+     0.5f,-0.5f,-0.5f, 0.0f,0.0f,  -0.5f,-0.5f,-0.5f, 1.0f,0.0f,  -0.5f, 0.5f,-0.5f, 1.0f,1.0f,   0.5f, 0.5f,-0.5f, 0.0f,1.0f,
+    -0.5f, 0.5f,-0.5f, 0.0f,0.0f,  -0.5f, 0.5f, 0.5f, 1.0f,0.0f,   0.5f, 0.5f, 0.5f, 1.0f,1.0f,   0.5f, 0.5f,-0.5f, 0.0f,1.0f,
+    -0.5f,-0.5f, 0.5f, 0.0f,0.0f,   0.5f,-0.5f, 0.5f, 1.0f,0.0f,   0.5f,-0.5f,-0.5f, 1.0f,1.0f,  -0.5f,-0.5f,-0.5f, 0.0f,1.0f,
+     0.5f,-0.5f, 0.5f, 0.0f,0.0f,   0.5f, 0.5f, 0.5f, 1.0f,0.0f,   0.5f, 0.5f,-0.5f, 1.0f,1.0f,   0.5f,-0.5f,-0.5f, 0.0f,1.0f,
+    -0.5f,-0.5f,-0.5f, 0.0f,0.0f,  -0.5f, 0.5f,-0.5f, 1.0f,0.0f,  -0.5f, 0.5f, 0.5f, 1.0f,1.0f,  -0.5f,-0.5f, 0.5f, 0.0f,1.0f
 };
 static const GLushort cube_indices[] = {
     0,1,2,0,2,3, 4,5,6,4,6,7, 8,9,10,8,10,11,
@@ -220,7 +220,6 @@ static nds_gpu_texture* get_gpu_texture(nds_gles2_backend* b,const nds_texture* 
 
 static float camera_depth(const nds_camera* camera,const nds_draw_part* p)
 {nds_mat4 view;nds_camera_view_matrix(camera,&view);return view.m[2]*p->position.x+view.m[6]*p->position.y+view.m[10]*p->position.z+view.m[14];}
-
 static void sort_transparent_parts(const nds_draw_list* list,const nds_camera* camera,size_t* order,size_t count)
 {size_t i;for(i=0;i<count;++i)order[i]=i;for(i=1;i<count;++i){size_t key=order[i],j=i;float key_depth=camera_depth(camera,&list->parts[key]);while(j>0){float prev_depth=camera_depth(camera,&list->parts[order[j-1]]);if(prev_depth<=key_depth)break;order[j]=order[j-1];--j;}order[j]=key;}}
 
@@ -241,34 +240,41 @@ fail:if(b){if(b->gl.glDeleteBuffers){if(b->vertex_buffer)b->gl.glDeleteBuffers(1
 }
 
 void nds_gles2_backend_destroy(nds_gles2_backend* b)
-{
-    size_t i;if(!b)return;if(b->gl.glDeleteTextures)for(i=0;i<b->texture_cache_count;++i)if(b->texture_cache[i].texture)b->gl.glDeleteTextures(1,&b->texture_cache[i].texture);
-    if(b->gl.glDeleteBuffers){for(i=0;i<b->mesh_cache_count;++i){if(b->mesh_cache[i].vertex_buffer)b->gl.glDeleteBuffers(1,&b->mesh_cache[i].vertex_buffer);if(b->mesh_cache[i].index_buffer)b->gl.glDeleteBuffers(1,&b->mesh_cache[i].index_buffer);}if(b->vertex_buffer)b->gl.glDeleteBuffers(1,&b->vertex_buffer);if(b->index_buffer)b->gl.glDeleteBuffers(1,&b->index_buffer);}if(b->gl.glDeleteProgram&&b->program)b->gl.glDeleteProgram(b->program);free(b);platform_gl_context_destroy();
-}
-
+{size_t i;if(!b)return;if(b->gl.glDeleteTextures)for(i=0;i<b->texture_cache_count;++i)if(b->texture_cache[i].texture)b->gl.glDeleteTextures(1,&b->texture_cache[i].texture);if(b->gl.glDeleteBuffers){for(i=0;i<b->mesh_cache_count;++i){if(b->mesh_cache[i].vertex_buffer)b->gl.glDeleteBuffers(1,&b->mesh_cache[i].vertex_buffer);if(b->mesh_cache[i].index_buffer)b->gl.glDeleteBuffers(1,&b->mesh_cache[i].index_buffer);}if(b->vertex_buffer)b->gl.glDeleteBuffers(1,&b->vertex_buffer);if(b->index_buffer)b->gl.glDeleteBuffers(1,&b->index_buffer);}if(b->gl.glDeleteProgram&&b->program)b->gl.glDeleteProgram(b->program);free(b);platform_gl_context_destroy();}
 nds_result nds_gles2_backend_resize(nds_gles2_backend* b,int width,int height){if(!b||width<=0||height<=0)return NDS_ERR_INVALID_ARG;b->width=width;b->height=height;glViewport(0,0,width,height);return NDS_OK;}
 nds_result nds_gles2_backend_begin(nds_gles2_backend* b){if(!b)return NDS_ERR_INVALID_ARG;if(platform_gl_context_make_current()!=NDS_OK)return NDS_ERR_INIT_FAILED;glClearColor(0.055f,0.075f,0.10f,1);glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);glDisable(GL_BLEND);glDepthMask(GL_TRUE);b->gl.glUseProgram(b->program);return NDS_OK;}
 
 static nds_result draw_one_part(nds_gles2_backend* b,const nds_draw_part* p,const nds_mat4* pv)
-{
-    nds_mat4 model,mvp;size_t index_count;int has_uv=0;nds_gpu_texture* texture=NULL;float r=(float)((p->color_rgba>>24)&0xff)/255.0f,g=(float)((p->color_rgba>>16)&0xff)/255.0f,bl=(float)((p->color_rgba>>8)&0xff)/255.0f,a=(float)(p->color_rgba&0xff)/255.0f;
-    if(p->mesh&&p->mesh->vertices&&p->mesh->indices&&p->mesh->vertex_count&&p->mesh->index_count){nds_gpu_mesh* gpu=get_gpu_mesh(b,p->mesh);if(!gpu)return NDS_ERR_UNKNOWN;b->gl.glBindBuffer(GL_ARRAY_BUFFER,gpu->vertex_buffer);b->gl.glBindBuffer(GL_ELEMENT_ARRAY_BUFFER,gpu->index_buffer);index_count=gpu->index_count;has_uv=1;}else{b->gl.glBindBuffer(GL_ARRAY_BUFFER,b->vertex_buffer);b->gl.glBindBuffer(GL_ELEMENT_ARRAY_BUFFER,b->index_buffer);index_count=sizeof(cube_indices)/sizeof(cube_indices[0]);has_uv=1;}
-    {
-        const GLsizei stride=has_uv?(p->mesh&&p->mesh->vertices?(GLsizei)sizeof(nds_mesh_vertex):(GLsizei)(5*sizeof(float))):0;
-        b->gl.glVertexAttribPointer((GLuint)b->position_attrib,3,GL_FLOAT,GL_FALSE,stride,(const void*)0);
-        b->gl.glVertexAttribPointer((GLuint)b->uv_attrib,2,GL_FLOAT,GL_FALSE,stride,(const void*)(3*sizeof(float)));
-        b->gl.glEnableVertexAttribArray((GLuint)b->uv_attrib);
-    }
-    if(p->texture){texture=get_gpu_texture(b,p->texture);if(!texture)return NDS_ERR_UNKNOWN;b->gl.glActiveTexture(GL_TEXTURE0);b->gl.glBindTexture(GL_TEXTURE_2D,texture->texture);}
-    b->gl.glUniform1i(b->use_texture_uniform,texture?1:0);a*=1.0f-p->transparency;make_model(&model,p);nds_mat4_mul(&mvp,pv,&model);b->gl.glUniformMatrix4fv(b->mvp_uniform,1,GL_FALSE,mvp.m);b->gl.glUniform4f(b->color_uniform,r,g,bl,a);glDrawElements(GL_TRIANGLES,(GLsizei)index_count,GL_UNSIGNED_SHORT,(const void*)0);return NDS_OK;
-}
+{nds_mat4 model,mvp;size_t index_count;nds_gpu_texture* texture=NULL;float r=(float)((p->color_rgba>>24)&0xff)/255.0f,g=(float)((p->color_rgba>>16)&0xff)/255.0f,bl=(float)((p->color_rgba>>8)&0xff)/255.0f,a=(float)(p->color_rgba&0xff)/255.0f;if(p->mesh&&p->mesh->vertices&&p->mesh->indices&&p->mesh->vertex_count&&p->mesh->index_count){nds_gpu_mesh* gpu=get_gpu_mesh(b,p->mesh);if(!gpu)return NDS_ERR_UNKNOWN;b->gl.glBindBuffer(GL_ARRAY_BUFFER,gpu->vertex_buffer);b->gl.glBindBuffer(GL_ELEMENT_ARRAY_BUFFER,gpu->index_buffer);index_count=gpu->index_count;}else{b->gl.glBindBuffer(GL_ARRAY_BUFFER,b->vertex_buffer);b->gl.glBindBuffer(GL_ELEMENT_ARRAY_BUFFER,b->index_buffer);index_count=sizeof(cube_indices)/sizeof(cube_indices[0]);}b->gl.glVertexAttribPointer((GLuint)b->position_attrib,3,GL_FLOAT,GL_FALSE,(GLsizei)(5*sizeof(float)),(const void*)0);b->gl.glVertexAttribPointer((GLuint)b->uv_attrib,2,GL_FLOAT,GL_FALSE,(GLsizei)(5*sizeof(float)),(const void*)(3*sizeof(float)));b->gl.glEnableVertexAttribArray((GLuint)b->uv_attrib);if(p->texture){texture=get_gpu_texture(b,p->texture);if(!texture)return NDS_ERR_UNKNOWN;b->gl.glActiveTexture(GL_TEXTURE0);b->gl.glBindTexture(GL_TEXTURE_2D,texture->texture);}b->gl.glUniform1i(b->use_texture_uniform,texture?1:0);a*=1.0f-p->transparency;make_model(&model,p);nds_mat4_mul(&mvp,pv,&model);b->gl.glUniformMatrix4fv(b->mvp_uniform,1,GL_FALSE,mvp.m);b->gl.glUniform4f(b->color_uniform,r,g,bl,a);glDrawElements(GL_TRIANGLES,(GLsizei)index_count,GL_UNSIGNED_SHORT,(const void*)0);return NDS_OK;}
 
 nds_result nds_gles2_backend_draw_parts(nds_gles2_backend* b,const nds_draw_list* list,const nds_camera* camera)
+{nds_mat4 projection,view,pv;float aspect;size_t* transparent_order=NULL,transparent_count=0,i,oi;nds_result result=NDS_OK;if(!b||!list||!camera)return NDS_ERR_INVALID_ARG;aspect=b->height>0?(float)b->width/(float)b->height:1.0f;nds_camera_projection_matrix(camera,aspect,&projection);nds_camera_view_matrix(camera,&view);nds_mat4_mul(&pv,&projection,&view);transparent_order=list->count?(size_t*)malloc(list->count*sizeof(*transparent_order)):NULL;if(list->count&&!transparent_order)return NDS_ERR_UNKNOWN;for(i=0;i<list->count;++i)if(list->parts[i].visible&&list->parts[i].transparency>0.0f&&list->parts[i].transparency<1.0f)transparent_order[transparent_count++]=i;sort_transparent_parts(list,camera,transparent_order,transparent_count);b->gl.glEnableVertexAttribArray((GLuint)b->position_attrib);for(int pass=0;pass<2;++pass){int transparent_pass=pass!=0;if(transparent_pass){glEnable(GL_BLEND);glBlendFunc(GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA);glDepthMask(GL_FALSE);}else{glDisable(GL_BLEND);glDepthMask(GL_TRUE);}if(transparent_pass){for(oi=0;oi<transparent_count;++oi){const nds_draw_part* p=&list->parts[transparent_order[oi]];nds_aabb bounds=part_world_bounds(p);if(!nds_frustum_aabb_visible(&pv,&bounds))continue;result=draw_one_part(b,p,&pv);if(result!=NDS_OK)goto done;}}else{for(i=0;i<list->count;++i){const nds_draw_part* p=&list->parts[i];if(!p->visible||p->transparency>=1.0f||p->transparency>0.0f)continue;nds_aabb bounds=part_world_bounds(p);if(!nds_frustum_aabb_visible(&pv,&bounds))continue;result=draw_one_part(b,p,&pv);if(result!=NDS_OK)goto done;}}}done:free(transparent_order);glDisable(GL_BLEND);glDepthMask(GL_TRUE);b->gl.glDisableVertexAttribArray((GLuint)b->position_attrib);b->gl.glDisableVertexAttribArray((GLuint)b->uv_attrib);b->gl.glUniform1i(b->use_texture_uniform,0);return result;}
+
+typedef struct nds_hud_vertex { float x,y,u,v; } nds_hud_vertex;
+static void hud_quad(nds_hud_vertex* vertices, GLushort* indices, size_t* quad_count, float x, float y, float w, float h)
+{size_t q=*quad_count;vertices[q*4+0]=(nds_hud_vertex){x,y,0,0};vertices[q*4+1]=(nds_hud_vertex){x+w,y,1,0};vertices[q*4+2]=(nds_hud_vertex){x+w,y+h,1,1};vertices[q*4+3]=(nds_hud_vertex){x,y+h,0,1};indices[q*6+0]=(GLushort)(q*4+0);indices[q*6+1]=(GLushort)(q*4+1);indices[q*6+2]=(GLushort)(q*4+2);indices[q*6+3]=(GLushort)(q*4+0);indices[q*6+4]=(GLushort)(q*4+2);indices[q*6+5]=(GLushort)(q*4+3);*quad_count=q+1;}
+
+nds_result nds_gles2_backend_draw_hud(nds_gles2_backend* b,const nds_hud_state* state)
 {
-    nds_mat4 projection,view,pv;float aspect;size_t* transparent_order=NULL,transparent_count=0,i,oi;nds_result result=NDS_OK;if(!b||!list||!camera)return NDS_ERR_INVALID_ARG;aspect=b->height>0?(float)b->width/(float)b->height:1.0f;nds_camera_projection_matrix(camera,aspect,&projection);nds_camera_view_matrix(camera,&view);nds_mat4_mul(&pv,&projection,&view);
-    transparent_order=list->count?(size_t*)malloc(list->count*sizeof(*transparent_order)):NULL;if(list->count&&!transparent_order)return NDS_ERR_UNKNOWN;for(i=0;i<list->count;++i)if(list->parts[i].visible&&list->parts[i].transparency>0.0f&&list->parts[i].transparency<1.0f)transparent_order[transparent_count++]=i;sort_transparent_parts(list,camera,transparent_order,transparent_count);b->gl.glEnableVertexAttribArray((GLuint)b->position_attrib);
-    for(int pass=0;pass<2;++pass){int transparent_pass=pass!=0;if(transparent_pass){glEnable(GL_BLEND);glBlendFunc(GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA);glDepthMask(GL_FALSE);}else{glDisable(GL_BLEND);glDepthMask(GL_TRUE);}if(transparent_pass){for(oi=0;oi<transparent_count;++oi){const nds_draw_part* p=&list->parts[transparent_order[oi]];nds_aabb bounds=part_world_bounds(p);if(!nds_frustum_aabb_visible(&pv,&bounds))continue;result=draw_one_part(b,p,&pv);if(result!=NDS_OK)goto done;}}else{for(i=0;i<list->count;++i){const nds_draw_part* p=&list->parts[i];if(!p->visible||p->transparency>=1.0f||p->transparency>0.0f)continue;nds_aabb bounds=part_world_bounds(p);if(!nds_frustum_aabb_visible(&pv,&bounds))continue;result=draw_one_part(b,p,&pv);if(result!=NDS_OK)goto done;}}}
-done:free(transparent_order);glDisable(GL_BLEND);glDepthMask(GL_TRUE);b->gl.glDisableVertexAttribArray((GLuint)b->position_attrib);b->gl.glDisableVertexAttribArray((GLuint)b->uv_attrib);b->gl.glUniform1i(b->use_texture_uniform,0);return result;
+    nds_hud_vertex vertices[96];GLushort indices[144];size_t quads=0;float health=0.0f,timer=0.0f,warning=0.0f;uint32_t round_number=0;int i;nds_mat4 ortho;
+    if(!b||!state)return NDS_ERR_INVALID_ARG;
+    if(state->player){health=state->player->health/100.0f;if(health<0)health=0;if(health>1)health=1;}
+    if(state->round){timer=1.0f-nds_round_phase_progress(state->round);round_number=state->round->round_number;}
+    if(state->disasters&&nds_disaster_is_warning(state->disasters)){warning=nds_disaster_warning_remaining(state->disasters)/3.0f;if(warning<0)warning=0;if(warning>1)warning=1;}
+    ortho.m[0]=2.0f/(float)b->width;ortho.m[1]=0;ortho.m[2]=0;ortho.m[3]=0;ortho.m[4]=0;ortho.m[5]=-2.0f/(float)b->height;ortho.m[6]=0;ortho.m[7]=0;ortho.m[8]=0;ortho.m[9]=0;ortho.m[10]=-1;ortho.m[11]=0;ortho.m[12]=-1;ortho.m[13]=1;ortho.m[14]=0;ortho.m[15]=1;
+    hud_quad(vertices,indices,&quads,24,24,260,30);hud_quad(vertices,indices,&quads,28,28,252,22*health);hud_quad(vertices,indices,&quads,24,(float)b->height-54,260,30);hud_quad(vertices,indices,&quads,28,(float)b->height-50,252*timer,22);
+    if(warning>0)hud_quad(vertices,indices,&quads,(float)b->width*0.5f-180,48,360,42),hud_quad(vertices,indices,&quads,(float)b->width*0.5f-174,54,348*warning,30);
+    for(i=0;i<10;++i)if(i<(int)(round_number%10))hud_quad(vertices,indices,&quads,(float)b->width-210+i*18,24,14,14);
+    if(!state->player||!state->player->alive)hud_quad(vertices,indices,&quads,(float)b->width*0.5f-120,(float)b->height-90,240,48);
+    b->gl.glUseProgram(b->program);b->gl.glBindBuffer(GL_ARRAY_BUFFER,b->vertex_buffer);b->gl.glBindBuffer(GL_ELEMENT_ARRAY_BUFFER,b->index_buffer);b->gl.glBufferData(GL_ARRAY_BUFFER,(GLsizeiptr)(quads*4*sizeof(vertices[0])),vertices,GL_STREAM_DRAW);b->gl.glBufferData(GL_ELEMENT_ARRAY_BUFFER,(GLsizeiptr)(quads*6*sizeof(indices[0])),indices,GL_STREAM_DRAW);
+    b->gl.glVertexAttribPointer((GLuint)b->position_attrib,2,GL_FLOAT,GL_FALSE,(GLsizei)sizeof(nds_hud_vertex),(const void*)0);b->gl.glVertexAttribPointer((GLuint)b->uv_attrib,2,GL_FLOAT,GL_FALSE,(GLsizei)sizeof(nds_hud_vertex),(const void*)(2*sizeof(float)));b->gl.glEnableVertexAttribArray((GLuint)b->position_attrib);b->gl.glEnableVertexAttribArray((GLuint)b->uv_attrib);b->gl.glUniformMatrix4fv(b->mvp_uniform,1,GL_FALSE,ortho.m);b->gl.glUniform1i(b->use_texture_uniform,0);glDisable(GL_DEPTH_TEST);glEnable(GL_BLEND);glBlendFunc(GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA);
+    b->gl.glUniform4f(b->color_uniform,0.02f,0.03f,0.04f,0.78f);glDrawElements(GL_TRIANGLES,6,GL_UNSIGNED_SHORT,(const void*)0);
+    if(health>0){b->gl.glUniform4f(b->color_uniform,0.18f,0.78f,0.28f,0.95f);glDrawElements(GL_TRIANGLES,6,GL_UNSIGNED_SHORT,(const void*)(6*sizeof(GLushort)));}
+    b->gl.glUniform4f(b->color_uniform,0.02f,0.03f,0.04f,0.78f);glDrawElements(GL_TRIANGLES,6,GL_UNSIGNED_SHORT,(const void*)(12*sizeof(GLushort)));
+    if(timer>0){b->gl.glUniform4f(b->color_uniform,0.25f,0.55f,0.95f,0.95f);glDrawElements(GL_TRIANGLES,6,GL_UNSIGNED_SHORT,(const void*)(18*sizeof(GLushort)));}
+    if(warning>0){b->gl.glUniform4f(b->color_uniform,0.95f,0.65f,0.08f,0.95f);glDrawElements(GL_TRIANGLES,6,GL_UNSIGNED_SHORT,(const void*)(24*sizeof(GLushort)));b->gl.glUniform4f(b->color_uniform,0.95f,0.25f,0.08f,0.95f);glDrawElements(GL_TRIANGLES,6,GL_UNSIGNED_SHORT,(const void*)(30*sizeof(GLushort)));}
+    {size_t base=warning>0?36:24;for(i=0;i<10;++i)if(i<(int)(round_number%10)){b->gl.glUniform4f(b->color_uniform,0.35f,0.75f,0.95f,0.95f);glDrawElements(GL_TRIANGLES,6,GL_UNSIGNED_SHORT,(const void*)((base+i*6)*sizeof(GLushort)));}if(!state->player||!state->player->alive){size_t dead_base=base+6*(round_number%10);b->gl.glUniform4f(b->color_uniform,0.85f,0.12f,0.12f,0.85f);glDrawElements(GL_TRIANGLES,6,GL_UNSIGNED_SHORT,(const void*)(dead_base*sizeof(GLushort)));}}
+    glDisable(GL_BLEND);glEnable(GL_DEPTH_TEST);glDepthMask(GL_TRUE);b->gl.glDisableVertexAttribArray((GLuint)b->position_attrib);b->gl.glDisableVertexAttribArray((GLuint)b->uv_attrib);return NDS_OK;
 }
 
 nds_result nds_gles2_backend_end(nds_gles2_backend* b){if(!b)return NDS_ERR_INVALID_ARG;platform_gl_swap_buffers();return NDS_OK;}
