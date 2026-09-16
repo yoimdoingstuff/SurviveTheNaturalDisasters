@@ -15,20 +15,28 @@ int main(void)
     assert(strcmp(nds_round_state_name(round.state), "Intermission") == 0);
     assert(strcmp(nds_disaster_type_name(round.disaster), "Earthquake") == 0);
     assert(fabsf(nds_round_time_remaining(&round) - 10.0f) < 0.001f);
+    assert(fabsf(nds_round_phase_progress(&round)) < 0.001f);
+    assert(nds_round_is_countdown(&round));
 
-    nds_round_update(&round, 9.9f);
-    assert(round.state == NDS_ROUND_INTERMISSION);
-    assert(fabsf(nds_round_time_remaining(&round) - 0.1f) < 0.001f);
+    nds_round_update(&round, 5.0f);
+    assert(fabsf(nds_round_time_remaining(&round) - 5.0f) < 0.001f);
+    assert(fabsf(nds_round_phase_progress(&round) - 0.5f) < 0.001f);
 
-    nds_round_update(&round, 0.1f);
+    nds_round_update(&round, 5.0f);
     assert(round.state == NDS_ROUND_PLAYING);
     assert(round.round_number == 1);
     assert(round.disaster == NDS_DISASTER_EARTHQUAKE);
     assert(fabsf(nds_round_time_remaining(&round) - 60.0f) < 0.001f);
+    assert(fabsf(nds_round_phase_progress(&round)) < 0.001f);
+    assert(!nds_round_is_countdown(&round));
 
-    nds_round_update(&round, 60.0f);
+    nds_round_update(&round, 30.0f);
+    assert(fabsf(nds_round_phase_progress(&round) - 0.5f) < 0.001f);
+
+    nds_round_update(&round, 30.0f);
     assert(round.state == NDS_ROUND_RESULTS);
     assert(fabsf(nds_round_time_remaining(&round) - 5.0f) < 0.001f);
+    assert(nds_round_is_countdown(&round));
 
     nds_round_update(&round, 5.0f);
     assert(round.state == NDS_ROUND_INTERMISSION);
