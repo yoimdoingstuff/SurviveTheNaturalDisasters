@@ -10,18 +10,10 @@ static int finite_vec3(nds_vec3 value)
 
 static float clamp01(float value)
 {
+    if (!isfinite(value)) return 0.0f;
     if (value < 0.0f) return 0.0f;
     if (value > 1.0f) return 1.0f;
     return value;
-}
-
-static uint32_t apply_transparency(uint32_t color_rgba, float transparency)
-{
-    unsigned int alpha = color_rgba & 0xffu;
-    float opacity = 1.0f - clamp01(transparency);
-    alpha = (unsigned int)((float)alpha * opacity + 0.5f);
-    if (alpha > 255u) alpha = 255u;
-    return (color_rgba & 0xffffff00u) | alpha;
 }
 
 static nds_result reserve(nds_draw_list* list, size_t needed)
@@ -56,26 +48,19 @@ nds_result nds_draw_list_add_part(nds_draw_list* list, const nds_instance* insta
 {
     nds_part_properties props;
     nds_draw_part* draw;
-    float transparency;
     if (!list || !instance) return NDS_ERR_INVALID_ARG;
     if (nds_part_get_properties(instance, &props) != NDS_OK) return NDS_ERR_INVALID_ARG;
     if (!props.visible || props.transparency >= 1.0f) return NDS_OK;
-
-    /* Never hand invalid transforms to the GPU. A single NaN/Inf in an imported
-       asset can otherwise poison the projection and make the whole frame look
-       like it has exploded. */
-    if (!finite_vec3(props.position) || !finite_vec3(props.size) ||
-        !finite_vec3(props.rotation)) return NDS_OK;
+    if (!finite_vec3(props.position) || !finite_vec3(props.size) || !finite_vec3(props.rotation)) return NDS_OK;
     if (props.size.x <= 0.0f || props.size.y <= 0.0f || props.size.z <= 0.0f) return NDS_OK;
-
-    transparency = clamp01(props.transparency);
+    if (!isfinite(props.transparency)) return NDS_OK;
     if (reserve(list, list->count + 1) != NDS_OK) return NDS_ERR_UNKNOWN;
     draw = &list->parts[list->count++];
     draw->position = props.position;
     draw->size = props.size;
     draw->rotation = props.rotation;
-    draw->transparency = transparency;
-    draw->color_rgba = apply_transparency(props.color_rgba, transparency);
+    draw->transparency = clamp01(props.transparency);
+    draw->color_rgba = props.color_rgba;
     draw->visible = props.visible;
     draw->mesh = props.mesh;
     draw->texture = props.texture;
