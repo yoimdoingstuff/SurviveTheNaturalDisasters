@@ -15,8 +15,10 @@ These tasks are informed by classic Roblox disaster-survival design and the main
 - [~] Make disaster damage visibly alter map structures
 - [x] Show the active/incoming disaster name in-game
 - [x] Roblox-style RMB camera capture/relative-look behavior on Windows
+- [~] Add Roblox-style third-person camera zoom, head-height orbit, and usable first-person mode
 - [ ] Add disaster-specific environmental presentation (falling debris, wind, water, fire, sky/light changes)
 - [~] Add multiple distinct shelters/strategic routes per map
+- [~] Add map-specific interactive props/buttons where the reference design calls for them
 - [ ] Add map validation rules for minimum size, spawn safety, block granularity, and disaster interaction
 - [x] Build a reference-informed map import/port workflow for supplied Natural Disaster Survival maps
 - [~] Port the first supplied/reference map into project-owned .ndsmap.json data after provenance/licensing review
