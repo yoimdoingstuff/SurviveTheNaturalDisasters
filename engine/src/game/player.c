@@ -1,6 +1,8 @@
 #include "engine/game/player.h"
+#include "engine/render/mesh.h"
 #include <math.h>
 #include <stddef.h>
+#include <stdlib.h>
 #include <string.h>
 
 static int overlap(float amin, float amax, float bmin, float bmax) { return amax > bmin && amin < bmax; }
@@ -80,8 +82,55 @@ void nds_player_update(nds_player_controller* p,const nds_instance* scene,float 
 }
 
 static nds_instance* child(nds_instance* model,const char* name){return nds_instance_find_child(model,name);}
+
+static float signed_power(float value, float exponent)
+{
+    float magnitude=powf(fabsf(value),exponent);
+    return value<0.0f?-magnitude:magnitude;
+}
+
+static nds_mesh* rounded_character_mesh(void)
+{
+    static nds_mesh mesh;
+    static int initialized=0;
+    const size_t segments=16,rings=8;
+    const float exponent=0.55f;
+    size_t i,j,index;
+    if(initialized) return mesh.vertices ? &mesh : NULL;
+    initialized=1;
+    mesh.vertex_count=(segments+1)*(rings+1);
+    mesh.index_count=segments*rings*6;
+    mesh.vertices=(nds_mesh_vertex*)calloc(mesh.vertex_count,sizeof(*mesh.vertices));
+    mesh.indices=(uint16_t*)calloc(mesh.index_count,sizeof(*mesh.indices));
+    if(!mesh.vertices||!mesh.indices){free(mesh.vertices);free(mesh.indices);mesh.vertices=NULL;mesh.indices=NULL;return NULL;}
+    for(j=0;j<=rings;++j){
+        float v=-1.57079632679f+(3.14159265359f*(float)j/(float)rings);
+        float cv=cosf(v),sv=sinf(v),cvp=signed_power(cv,exponent),svp=signed_power(sv,exponent);
+        for(i=0;i<=segments;++i){
+            float u=-3.14159265359f+(6.28318530718f*(float)i/(float)segments);
+            float cu=cosf(u),su=sinf(u),cup=signed_power(cu,exponent),sup=signed_power(su,exponent);
+            index=j*(segments+1)+i;
+            mesh.vertices[index].x=0.5f*cvp*cup;
+            mesh.vertices[index].y=0.5f*svp;
+            mesh.vertices[index].z=0.5f*cvp*sup;
+            mesh.vertices[index].u=(float)i/(float)segments;
+            mesh.vertices[index].v=(float)j/(float)rings;
+        }
+    }
+    index=0;
+    for(j=0;j<rings;++j){for(i=0;i<segments;++i){uint16_t a=(uint16_t)(j*(segments+1)+i);uint16_t b=(uint16_t)(a+1);uint16_t c=(uint16_t)((j+1)*(segments+1)+i+1);uint16_t d=(uint16_t)((j+1)*(segments+1)+i);mesh.indices[index++]=a;mesh.indices[index++]=b;mesh.indices[index++]=c;mesh.indices[index++]=a;mesh.indices[index++]=c;mesh.indices[index++]=d;}}
+    return &mesh;
+}
+
 static void set_part(nds_instance* part, nds_vec3 position, nds_vec3 size, uint32_t color, nds_vec3 rotation, int visible)
-{nds_part_properties p;if(!part||nds_part_get_properties(part,&p)!=NDS_OK)return;p.anchored=1;p.can_collide=0;p.visible=visible;p.position=position;p.size=size;p.color_rgba=color;p.rotation=rotation;nds_part_set_properties(part,&p);}
+{
+    nds_part_properties p;const char* name;
+    if(!part||nds_part_get_properties(part,&p)!=NDS_OK)return;
+    p.anchored=1;p.can_collide=0;p.visible=visible;p.position=position;p.size=size;p.color_rgba=color;p.rotation=rotation;
+    name=nds_instance_get_name(part);
+    if(name&&strncmp(name,"Player",6)==0&&strcmp(name,"PlayerShadow")!=0)p.mesh=rounded_character_mesh();
+    nds_part_set_properties(part,&p);
+}
 
 nds_result nds_player_attach_visual(nds_player_controller* p, nds_instance* scene)
 {
@@ -100,18 +149,20 @@ nds_result nds_player_attach_visual(nds_player_controller* p, nds_instance* scen
 
 void nds_player_update_visual(const nds_player_controller* p, nds_instance* scene)
 {
-    nds_instance* model;float speed,walk,swing,bob,yaw,sy,cy;nds_vec3 body_pos,head_pos;
+    nds_instance* model;float speed,phase,swing,bob,yaw,rx,rz,fx,fz,arm_left_y,arm_right_y,leg_left_y,leg_right_y;nds_vec3 body_pos,head_pos;
     if(!p||!scene)return;model=nds_instance_find_child(scene,"PlayerAvatar");if(!model)return;
-    speed=sqrtf(p->velocity.x*p->velocity.x+p->velocity.z*p->velocity.z);walk=speed>0.1f?(0.55f*sinf(p->animation_time)):0.0f;swing=speed>0.1f?28.0f*sinf(p->animation_time):5.0f*sinf(p->animation_time*.5f);bob=speed>0.1f?0.045f*fabsf(sinf(p->animation_time)):0.0f;yaw=p->facing_yaw;sy=sinf(rad(yaw));cy=cosf(rad(yaw));
+    speed=sqrtf(p->velocity.x*p->velocity.x+p->velocity.z*p->velocity.z);phase=p->animation_time;swing=speed>0.1f?28.0f*sinf(phase):0.0f;bob=speed>0.1f?0.045f*fabsf(sinf(phase)):0.0f;yaw=p->facing_yaw;
+    rx=cosf(rad(yaw));rz=-sinf(rad(yaw));fx=-sinf(rad(yaw));fz=-cosf(rad(yaw));
     body_pos=(nds_vec3){p->position.x,p->position.y+bob,p->position.z};head_pos=(nds_vec3){p->position.x,p->position.y+1.0f+bob,p->position.z};
+    arm_left_y=body_pos.y+0.52f*cosf(rad(swing));arm_right_y=body_pos.y+0.52f*cosf(rad(-swing));
+    leg_left_y=body_pos.y-0.53f*cosf(rad(-swing));leg_right_y=body_pos.y-0.53f*cosf(rad(swing));
     set_part(child(model,"PlayerTorso"),body_pos,(nds_vec3){.95f,1.05f,.55f},0x2f6fedff,(nds_vec3){0,yaw,0},p->alive);
     set_part(child(model,"PlayerHead"),head_pos,(nds_vec3){.82f,.82f,.82f},0xf0c9a4ff,(nds_vec3){0,yaw,0},p->alive);
-    set_part(child(model,"PlayerLeftArm"),(nds_vec3){body_pos.x-sy*.68f,body_pos.y+.02f,body_pos.z-cy*.68f},(nds_vec3){.38f,1.0f,.42f},0xf0c9a4ff,(nds_vec3){swing,yaw,0},p->alive);
-    set_part(child(model,"PlayerRightArm"),(nds_vec3){body_pos.x+sy*.68f,body_pos.y+.02f,body_pos.z+cy*.68f},(nds_vec3){.38f,1.0f,.42f},0xf0c9a4ff,(nds_vec3){-swing,yaw,0},p->alive);
-    set_part(child(model,"PlayerLeftLeg"),(nds_vec3){body_pos.x-sy*.25f,body_pos.y-.98f,body_pos.z-cy*.25f},(nds_vec3){.42f,1.0f,.48f},0x27364dff,(nds_vec3){-swing,yaw,0},p->alive);
-    set_part(child(model,"PlayerRightLeg"),(nds_vec3){body_pos.x+sy*.25f,body_pos.y-.98f,body_pos.z+cy*.25f},(nds_vec3){.42f,1.0f,.48f},0x27364dff,(nds_vec3){swing,yaw,0},p->alive);
+    set_part(child(model,"PlayerLeftArm"),(nds_vec3){body_pos.x-rx*.68f+fx*.5f*sinf(rad(swing)),arm_left_y,body_pos.z-rz*.68f+fz*.5f*sinf(rad(swing))},(nds_vec3){.38f,1.0f,.42f},0xf0c9a4ff,(nds_vec3){swing,yaw,0},p->alive);
+    set_part(child(model,"PlayerRightArm"),(nds_vec3){body_pos.x+rx*.68f+fx*.5f*sinf(rad(-swing)),arm_right_y,body_pos.z+rz*.68f+fz*.5f*sinf(rad(-swing))},(nds_vec3){.38f,1.0f,.42f},0xf0c9a4ff,(nds_vec3){-swing,yaw,0},p->alive);
+    set_part(child(model,"PlayerLeftLeg"),(nds_vec3){body_pos.x-rx*.25f+fx*.5f*sinf(rad(-swing)),leg_left_y,body_pos.z-rz*.25f+fz*.5f*sinf(rad(-swing))},(nds_vec3){.42f,1.0f,.48f},0x27364dff,(nds_vec3){-swing,yaw,0},p->alive);
+    set_part(child(model,"PlayerRightLeg"),(nds_vec3){body_pos.x+rx*.25f+fx*.5f*sinf(rad(swing)),leg_right_y,body_pos.z+rz*.25f+fz*.5f*sinf(rad(swing))},(nds_vec3){.42f,1.0f,.48f},0x27364dff,(nds_vec3){swing,yaw,0},p->alive);
     set_part(child(model,"PlayerShadow"),(nds_vec3){p->position.x,p->position.y-p->half_height+.025f,p->position.z},(nds_vec3){1.65f,.025f,1.1f},0x17202b70u,(nds_vec3){0,0,0},p->alive);
-    (void)walk;
 }
 
 void nds_player_rotate_camera(nds_player_controller* p,float yaw_delta,float pitch_delta){if(!p)return;p->camera_yaw+=yaw_delta;p->camera_pitch+=pitch_delta;if(p->camera_pitch<5.0f)p->camera_pitch=5.0f;if(p->camera_pitch>55.0f)p->camera_pitch=55.0f;}
