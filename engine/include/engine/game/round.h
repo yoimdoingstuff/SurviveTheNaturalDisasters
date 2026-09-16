@@ -27,6 +27,8 @@ typedef struct nds_round {
 
 void nds_round_init(nds_round* round);
 void nds_round_update(nds_round* round, float delta_seconds);
+/* End the active round immediately, preserving the result for the results phase. */
+void nds_round_finish(nds_round* round, uint8_t player_survived);
 float nds_round_time_remaining(const nds_round* round);
 float nds_round_phase_progress(const nds_round* round);
 int nds_round_is_countdown(const nds_round* round);
