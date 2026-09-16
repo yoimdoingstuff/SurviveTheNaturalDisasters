@@ -4,12 +4,14 @@
  * normal survival rotation. */
 static const char* const MAP_PATHS[] = {
     "game/content/maps/island_ruins.ndsmap.json",
-    "game/content/maps/downtown.ndsmap.json"
+    "game/content/maps/downtown.ndsmap.json",
+    "game/content/maps/coastal_village.ndsmap.json"
 };
 
 static const char* const MAP_NAMES[] = {
     "Island Ruins",
-    "Downtown"
+    "Downtown",
+    "Coastal Village"
 };
 
 size_t nds_map_catalog_count(void)
