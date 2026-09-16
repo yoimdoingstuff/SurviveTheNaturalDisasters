@@ -132,3 +132,9 @@ const char* nds_disaster_type_name(nds_disaster_type disaster)
     default: return "Unknown";
     }
 }
+
+const char* nds_round_result_name(const nds_round* round)
+{
+    if (!round || round->state != NDS_ROUND_RESULTS) return "Pending";
+    return round->player_survived ? "Survived" : "Eliminated";
+}
