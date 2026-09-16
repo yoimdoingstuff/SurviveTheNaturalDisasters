@@ -21,6 +21,8 @@ typedef struct nds_disaster_system {
     nds_earthquake earthquake;
     nds_windstorm windstorm;
     nds_disaster_type active_type;
+    float warning_duration;
+    float warning_remaining;
     uint8_t active;
 } nds_disaster_system;
 
@@ -30,6 +32,8 @@ void nds_disaster_system_update(nds_disaster_system* system,
                                 nds_player_controller* player,
                                 nds_instance* scene, float dt);
 void nds_disaster_system_stop(nds_disaster_system* system, nds_instance* scene);
+float nds_disaster_warning_remaining(const nds_disaster_system* system);
+int nds_disaster_is_warning(const nds_disaster_system* system);
 
 #ifdef __cplusplus
 }
