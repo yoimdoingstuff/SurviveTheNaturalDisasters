@@ -33,10 +33,18 @@ int main(void)
     nds_round_update(&round, 30.0f);
     assert(fabsf(nds_round_phase_progress(&round) - 0.5f) < 0.001f);
 
-    nds_round_update(&round, 30.0f);
+    /* Elimination should immediately enter the results phase and preserve the result. */
+    nds_round_finish(&round, 0);
     assert(round.state == NDS_ROUND_RESULTS);
+    assert(round.player_survived == 0);
     assert(fabsf(nds_round_time_remaining(&round) - 5.0f) < 0.001f);
+    assert(fabsf(nds_round_phase_progress(&round)) < 0.001f);
     assert(nds_round_is_countdown(&round));
+
+    /* Finishing a non-playing phase is a no-op. */
+    nds_round_finish(&round, 1);
+    assert(round.state == NDS_ROUND_RESULTS);
+    assert(round.player_survived == 0);
 
     nds_round_update(&round, 5.0f);
     assert(round.state == NDS_ROUND_INTERMISSION);
