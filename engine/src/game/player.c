@@ -149,19 +149,40 @@ nds_result nds_player_attach_visual(nds_player_controller* p, nds_instance* scen
 
 void nds_player_update_visual(const nds_player_controller* p, nds_instance* scene)
 {
-    nds_instance* model;float speed,phase,swing,bob,yaw,rx,rz,fx,fz,arm_left_y,arm_right_y,leg_left_y,leg_right_y;nds_vec3 body_pos,head_pos;
+    nds_instance* model;
+    float speed,phase,swing,bob,yaw,rx,rz,fx,fz;
+    nds_vec3 body_pos,head_pos;
     if(!p||!scene)return;model=nds_instance_find_child(scene,"PlayerAvatar");if(!model)return;
-    speed=sqrtf(p->velocity.x*p->velocity.x+p->velocity.z*p->velocity.z);phase=p->animation_time;swing=speed>0.1f?28.0f*sinf(phase):0.0f;bob=speed>0.1f?0.045f*fabsf(sinf(phase)):0.0f;yaw=p->facing_yaw;
-    rx=cosf(rad(yaw));rz=-sinf(rad(yaw));fx=-sinf(rad(yaw));fz=-cosf(rad(yaw));
-    body_pos=(nds_vec3){p->position.x,p->position.y+bob,p->position.z};head_pos=(nds_vec3){p->position.x,p->position.y+1.0f+bob,p->position.z};
-    arm_left_y=body_pos.y+0.52f*cosf(rad(swing));arm_right_y=body_pos.y+0.52f*cosf(rad(-swing));
-    leg_left_y=body_pos.y-0.53f*cosf(rad(-swing));leg_right_y=body_pos.y-0.53f*cosf(rad(swing));
+    speed=sqrtf(p->velocity.x*p->velocity.x+p->velocity.z*p->velocity.z);
+    phase=p->animation_time;
+    swing=speed>0.1f?28.0f*sinf(phase):0.0f;
+    bob=speed>0.1f?0.045f*fabsf(sinf(phase)):0.0f;
+    yaw=p->facing_yaw;
+    rx=cosf(rad(yaw));
+    rz=-sinf(rad(yaw));
+    fx=-sinf(rad(yaw));
+    fz=-cosf(rad(yaw));
+    body_pos=(nds_vec3){p->position.x,p->position.y+bob,p->position.z};
+    head_pos=(nds_vec3){p->position.x,p->position.y+1.0f+bob,p->position.z};
+
+    /* Limbs are separate R6-style pieces. Keep their shoulder/hip heights
+       fixed and swing them forward/back around their local X axis. Moving the
+       centres vertically made the old animation look like the limbs were
+       folding inward rather than walking. */
+    {
+        float arm_swing=0.5f*sinf(rad(swing));
+        float leg_swing=0.5f*sinf(rad(-swing));
+        nds_vec3 left_arm_pos=(nds_vec3){body_pos.x-rx*.68f+fx*arm_swing,body_pos.y+.02f,body_pos.z-rz*.68f+fz*arm_swing};
+        nds_vec3 right_arm_pos=(nds_vec3){body_pos.x+rx*.68f+fx*(-arm_swing),body_pos.y+.02f,body_pos.z+rz*.68f+fz*(-arm_swing)};
+        nds_vec3 left_leg_pos=(nds_vec3){body_pos.x-rx*.25f+fx*leg_swing,body_pos.y-.98f,body_pos.z-rz*.25f+fz*leg_swing};
+        nds_vec3 right_leg_pos=(nds_vec3){body_pos.x+rx*.25f+fx*(-leg_swing),body_pos.y-.98f,body_pos.z+rz*.25f+fz*(-leg_swing)};
+        set_part(child(model,"PlayerLeftArm"),left_arm_pos,(nds_vec3){.38f,1.0f,.42f},0xf0c9a4ff,(nds_vec3){swing,yaw,0},p->alive);
+        set_part(child(model,"PlayerRightArm"),right_arm_pos,(nds_vec3){.38f,1.0f,.42f},0xf0c9a4ff,(nds_vec3){-swing,yaw,0},p->alive);
+        set_part(child(model,"PlayerLeftLeg"),left_leg_pos,(nds_vec3){.42f,1.0f,.48f},0x27364dff,(nds_vec3){-swing,yaw,0},p->alive);
+        set_part(child(model,"PlayerRightLeg"),right_leg_pos,(nds_vec3){.42f,1.0f,.48f},0x27364dff,(nds_vec3){swing,yaw,0},p->alive);
+    }
     set_part(child(model,"PlayerTorso"),body_pos,(nds_vec3){.95f,1.05f,.55f},0x2f6fedff,(nds_vec3){0,yaw,0},p->alive);
     set_part(child(model,"PlayerHead"),head_pos,(nds_vec3){.82f,.82f,.82f},0xf0c9a4ff,(nds_vec3){0,yaw,0},p->alive);
-    set_part(child(model,"PlayerLeftArm"),(nds_vec3){body_pos.x-rx*.68f+fx*.5f*sinf(rad(swing)),arm_left_y,body_pos.z-rz*.68f+fz*.5f*sinf(rad(swing))},(nds_vec3){.38f,1.0f,.42f},0xf0c9a4ff,(nds_vec3){swing,yaw,0},p->alive);
-    set_part(child(model,"PlayerRightArm"),(nds_vec3){body_pos.x+rx*.68f+fx*.5f*sinf(rad(-swing)),arm_right_y,body_pos.z+rz*.68f+fz*.5f*sinf(rad(-swing))},(nds_vec3){.38f,1.0f,.42f},0xf0c9a4ff,(nds_vec3){-swing,yaw,0},p->alive);
-    set_part(child(model,"PlayerLeftLeg"),(nds_vec3){body_pos.x-rx*.25f+fx*.5f*sinf(rad(-swing)),leg_left_y,body_pos.z-rz*.25f+fz*.5f*sinf(rad(-swing))},(nds_vec3){.42f,1.0f,.48f},0x27364dff,(nds_vec3){-swing,yaw,0},p->alive);
-    set_part(child(model,"PlayerRightLeg"),(nds_vec3){body_pos.x+rx*.25f+fx*.5f*sinf(rad(swing)),leg_right_y,body_pos.z+rz*.25f+fz*.5f*sinf(rad(swing))},(nds_vec3){.42f,1.0f,.48f},0x27364dff,(nds_vec3){swing,yaw,0},p->alive);
     set_part(child(model,"PlayerShadow"),(nds_vec3){p->position.x,p->position.y-p->half_height+.025f,p->position.z},(nds_vec3){1.65f,.025f,1.1f},0x17202b70u,(nds_vec3){0,0,0},p->alive);
 }
 
