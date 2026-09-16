@@ -39,7 +39,7 @@ static void collide(nds_player_controller* pl,const nds_instance* root,int axis,
                 if(pl->velocity.y==0&&old-half>=by-.02f)pl->grounded=1;
             }else if(axis==2&&overlap(px0,px1,ax,bx)&&overlap(py0,py1,ay,by)){
                 if(pl->velocity.z>0&&old+half<=az+.01f&&pz1>az){pl->position.z=az-half;pl->velocity.z=0;}
-                else if(pl->velocity.z<0&&old-half>=bz-.01f&&pz0<bz){pl->position.z=bz+half;pl->velocity.z=0;}
+                else if(pl->velocity.z<0&&old-half>=bz-.01f&&pz0<bx){pl->position.z=bz+half;pl->velocity.z=0;}
             }
         }
         if(nds_instance_child_count(c))collide(pl,c,axis,old,half);
@@ -53,31 +53,59 @@ void nds_player_init(nds_player_controller* p,const nds_instance* scene){
     size_t i;if(!p)return;
     p->position=(nds_vec3){0,5,0};p->velocity=(nds_vec3){0,0,0};p->half_width=.45f;p->half_height=1.5f;
     p->move_speed=8;p->jump_speed=8;p->gravity=24;p->health=100.0f;p->grounded=0;p->alive=1;
-    p->camera_yaw=0.0f;p->camera_pitch=12.0f;p->camera_distance=8.0f;p->facing_yaw=0.0f;p->animation_time=0.0f;p->third_person=1;
+    p->camera_yaw=0.0f;p->camera_pitch=12.0f;p->camera_distance=8.0f;p->facing_yaw=0.0f;p->animation_time=0.0f;
+    p->launch_land_timer=0.0f;p->launch_land_services=0;p->launch_land_bridge_open=0;p->launch_land_rocket_active=0;p->third_person=1;
     if(!scene)return;
     for(i=0;i<nds_instance_child_count(scene);++i){const nds_instance* c=nds_instance_child_at(scene,i);nds_part_properties q;if(c&&nds_instance_get_class(c)==NDS_CLASS_SPAWN_POINT&&nds_part_get_properties(c,&q)==NDS_OK){p->position=q.position;p->position.y+=p->half_height+.5f;return;}}
 }
 
 void nds_player_damage(nds_player_controller* p,float amount){if(!p||!p->alive||amount<=0.0f)return;p->health-=amount;if(p->health<=0.0f){p->health=0.0f;p->alive=0;p->velocity=(nds_vec3){0,0,0};}}
 
-static void press_named_button(nds_instance* scene,const char* name){
-    nds_instance* button=nds_instance_find_child(scene,name);nds_part_properties props;
-    if(!button||nds_part_get_properties(button,&props)!=NDS_OK)return;
-    props.color_rgba=0x48e06eff;props.position.y-=.18f;nds_part_set_properties(button,&props);
+static nds_instance* named_part(nds_instance* scene,const char* name){return scene&&name?nds_instance_find_child(scene,name):NULL;}
+static void set_button_state(nds_instance* scene,const char* name,uint32_t color,float y_delta){nds_instance* button=named_part(scene,name);nds_part_properties props;if(!button||nds_part_get_properties(button,&props)!=NDS_OK)return;props.color_rgba=color;props.position.y+=y_delta;nds_part_set_properties(button,&props);}
+static void set_part_position(nds_instance* scene,const char* name,nds_vec3 position){nds_instance* part=named_part(scene,name);nds_part_properties props;if(!part||nds_part_get_properties(part,&props)!=NDS_OK)return;props.position=position;nds_part_set_properties(part,&props);}
+
+static int button_aimed_at(const nds_player_controller* p,const nds_part_properties* props){
+    float dx=props->position.x-p->position.x,dy=props->position.y-(p->position.y+1.0f),dz=props->position.z-p->position.z;
+    float distance=sqrtf(dx*dx+dy*dy+dz*dz),yaw,pitch,fx,fy,fz,dot;
+    if(distance<0.7f||distance>9.0f)return 0;
+    yaw=rad(p->camera_yaw);pitch=rad(p->camera_pitch);
+    fx=-sinf(yaw)*cosf(pitch);fy=sinf(pitch);fz=-cosf(yaw)*cosf(pitch);
+    dot=(dx/distance)*fx+(dy/distance)*fy+(dz/distance)*fz;
+    return dot>=0.82f;
 }
 
-static void launch_land_interact(nds_player_controller* p,const nds_instance* scene){
+static void launch_land_update_world(nds_player_controller* p,nds_instance* scene,float dt){
+    float offset;
+    if(!p||!scene||strcmp(nds_instance_get_name(scene),"Launch Land")!=0)return;
+    if(p->launch_land_bridge_open)set_part_position(scene,"Bridge",(nds_vec3){7,15.5f,0});
+    if(!p->launch_land_rocket_active)return;
+    p->launch_land_timer+=dt;
+    offset=p->launch_land_timer<4.0f?p->launch_land_timer*7.0f:28.0f;
+    set_part_position(scene,"RocketBody",(nds_vec3){25,8.0f+offset,0});
+    set_part_position(scene,"RocketNose",(nds_vec3){36,8.0f+offset,0});
+    set_part_position(scene,"RocketTank",(nds_vec3){25,8.0f+offset,0});
+    set_part_position(scene,"RocketBoosterA",(nds_vec3){25,3.0f+offset,4});
+    set_part_position(scene,"RocketBoosterB",(nds_vec3){25,3.0f+offset,-4});
+    set_part_position(scene,"RocketCabin",(nds_vec3){31,7.0f+offset,0});
+    set_part_position(scene,"RocketLaunchButton",(nds_vec3){33.5f,10.0f+offset,0});
+}
+
+static void launch_land_interact(nds_player_controller* p,nds_instance* scene){
     static int last_mouse_down=0;
     int mouse_down=platform_is_mouse_button_down(0);size_t i,n;
     if(!p||!scene||strcmp(nds_instance_get_name(scene),"Launch Land")!=0){last_mouse_down=mouse_down;return;}
     if(!mouse_down||last_mouse_down){last_mouse_down=mouse_down;return;}
     n=nds_instance_child_count(scene);
     for(i=0;i<n;++i){
-        const nds_instance* c=nds_instance_child_at(scene,i);nds_part_properties q;const char* name;float dx,dy,dz,dist2;
-        if(!c||nds_instance_get_class(c)!=NDS_CLASS_PART)continue;name=nds_instance_get_name(c);if(!name)continue;
+        nds_instance* c=nds_instance_child_at(scene,i);nds_part_properties q;const char* name;
+        if(!c||nds_instance_get_class(c)!=NDS_CLASS_PART)continue;
+        name=nds_instance_get_name(c);if(!name)continue;
         if(strncmp(name,"ServiceTowerButton",18)!=0&&strcmp(name,"BridgeButton")!=0&&strcmp(name,"RocketLaunchButton")!=0)continue;
-        if(nds_part_get_properties(c,&q)!=NDS_OK)continue;dx=q.position.x-p->position.x;dy=q.position.y-p->position.y;dz=q.position.z-p->position.z;dist2=dx*dx+dy*dy+dz*dz;
-        if(dist2<=16.0f)press_named_button((nds_instance*)scene,name);
+        if(nds_part_get_properties(c,&q)!=NDS_OK||!button_aimed_at(p,&q))continue;
+        if(strncmp(name,"ServiceTowerButton",18)==0){uint8_t bit=(uint8_t)(strcmp(name,"ServiceTowerButtonLower")==0?1:2);if(!(p->launch_land_services&bit)){p->launch_land_services|=bit;set_button_state(scene,name,0x48e06eff,-.18f);}}
+        else if(strcmp(name,"BridgeButton")==0&&p->launch_land_services==3&&!p->launch_land_bridge_open){p->launch_land_bridge_open=1;set_button_state(scene,name,0x48e06eff,-.18f);}
+        else if(strcmp(name,"RocketLaunchButton")==0&&p->launch_land_bridge_open&&!p->launch_land_rocket_active){p->launch_land_rocket_active=1;p->launch_land_timer=0.0f;set_button_state(scene,name,0x48e06eff,-.18f);}
     }
     last_mouse_down=mouse_down;
 }
@@ -88,10 +116,10 @@ void nds_player_update(nds_player_controller* p,const nds_instance* scene,float 
     if(p->third_person){if(platform_is_key_down(PLATFORM_KEY_Q))nds_player_zoom_camera(p,12.0f*dt);if(platform_is_key_down(PLATFORM_KEY_E))nds_player_zoom_camera(p,-12.0f*dt);}
     local_x=(float)(r-l);local_forward=(float)(f-b);len=sqrtf(local_x*local_x+local_forward*local_forward);if(len>0.001f){local_x/=len;local_forward/=len;}else{local_x=0;local_forward=0;}
     yaw=rad(p->camera_yaw);s=sinf(yaw);c=cosf(yaw);target_x=local_forward*(-s)+local_x*c;target_z=local_forward*(-c)+local_x*(-s);
-    if(len>0.001f){p->velocity.x=move_toward(p->velocity.x,target_x*p->move_speed,acceleration*dt);p->velocity.z=move_toward(p->velocity.z,target_z*p->move_speed,acceleration*dt);target_facing=deg(atan2f(target_x,-target_z));p->facing_yaw=approach_angle(p->facing_yaw,target_facing,facing_turn_speed*dt);p->animation_time+=dt*(p->grounded?9.0f:4.0f);}else{p->velocity.x=move_toward(p->velocity.x,0,deceleration*dt);p->velocity.z=move_toward(p->velocity.z,0,deceleration*dt);p->animation_time+=dt*2.0f;}
+    if(len>0.001f){p->velocity.x=move_toward(p->velocity.x,target_x*p->move_speed,acceleration*dt);p->velocity.z=move_toward(p->velocity.z,target_z*p->move_speed,acceleration*dt);target_facing=deg(atan2f(target_x,-target_z));p->facing_yaw=approach_angle(p->facing_yaw,target_facing,facing_turn_speed*dt);p->animation_time+=dt*(p->grounded?9.0f:4.0f);}else{p->velocity.x=move_toward(p->velocity.x,0.0f,deceleration*dt);p->velocity.z=move_toward(p->velocity.z,0.0f,deceleration*dt);p->animation_time+=dt*2.0f;}
     if(jump&&p->grounded){p->velocity.y=p->jump_speed;p->grounded=0;}p->velocity.y-=p->gravity*dt;ox=p->position.x;oy=p->position.y;oz=p->position.z;p->grounded=0;
     p->position.x+=p->velocity.x*dt;collide(p,scene,0,ox,p->half_width);p->position.y+=p->velocity.y*dt;collide(p,scene,1,oy,p->half_height);p->position.z+=p->velocity.z*dt;collide(p,scene,2,oz,p->half_width);if(p->position.y<-20)nds_player_damage(p,100.0f);
-    launch_land_interact(p,scene);
+    launch_land_interact(p,(nds_instance*)scene);launch_land_update_world(p,(nds_instance*)scene,dt);
 }
 
 static nds_instance* child(nds_instance* model,const char* name){return nds_instance_find_child(model,name);}
