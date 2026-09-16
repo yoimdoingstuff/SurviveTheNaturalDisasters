@@ -24,10 +24,20 @@ typedef struct nds_disaster_settings {
     float windstorm_strength;
 } nds_disaster_settings;
 
+typedef struct nds_disaster_environment {
+    float wind_intensity;
+    float shake_intensity;
+    float debris_intensity;
+    float water_intensity;
+    float fire_intensity;
+    float sky_darkness;
+} nds_disaster_environment;
+
 typedef struct nds_disaster_system {
     nds_earthquake earthquake;
     nds_windstorm windstorm;
     nds_disaster_type active_type;
+    nds_disaster_environment environment;
     float warning_duration;
     float warning_remaining;
     uint8_t active;
