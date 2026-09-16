@@ -3,12 +3,14 @@
 /* Render Test remains available as a development asset, but is not part of the
  * normal survival rotation. */
 static const char* const MAP_PATHS[] = {
+    "game/content/maps/happy_home.ndsmap.json",
     "game/content/maps/island_ruins.ndsmap.json",
     "game/content/maps/downtown.ndsmap.json",
     "game/content/maps/coastal_village.ndsmap.json"
 };
 
 static const char* const MAP_NAMES[] = {
+    "Happy Home",
     "Island Ruins",
     "Downtown",
     "Coastal Village"
