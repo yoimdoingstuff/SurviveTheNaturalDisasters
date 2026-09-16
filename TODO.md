@@ -23,6 +23,7 @@ These tasks are informed by classic Roblox disaster-survival design and the main
 - [~] Port additional classic maps using the same block-by-block workflow
 - [~] Compare disaster behavior against supplied reference material and tune timing/forces
 - [ ] Add game tips/tutorial prompts inspired by classic disaster-survival presentation
+- [ ] Add an in-game map editor with block/part placement, selection, transform, property editing, deletion, save/load, and playtest workflow
 - [ ] Leave extension points for additional tools, achievements, and minigame-style modes after base gameplay is stable
 
 ## Phase 0 - Project foundation
@@ -56,6 +57,9 @@ These tasks are informed by classic Roblox disaster-survival design and the main
 - [x] Coastal Village geometry ported
 - [x] Arch Park geometry ported
 - [x] Surf Central geometry ported
+- [x] Fort Indestructible geometry ported
+- [x] Trailer Park geometry ported
+- [x] Glass Office geometry ported
 - [ ] Port remaining classic maps from the supplied/reference set
 
 ## Phase 1 - Native runtime core
