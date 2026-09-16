@@ -15,8 +15,6 @@ static void windstorm_visit(nds_windstorm* storm, nds_player_controller* player,
             float crosswind = sinf(phase * 0.83f) * gust;
             p.position.x += lateral * dt;
             p.position.z += crosswind * dt;
-            /* Loose debris tumbles as the wind catches it. Keep the rotation bounded
-             * so repeated frames do not eventually overflow the transform. */
             p.rotation.x += crosswind * 0.018f * dt;
             p.rotation.y += lateral * 0.012f * dt;
             p.rotation.z += gust * 0.010f * sinf(phase * 1.31f) * dt;
@@ -76,8 +74,6 @@ static void windstorm_update(nds_windstorm* storm, nds_player_controller* player
             if (!player->grounded && gust > storm->strength * 0.9f)
                 nds_player_damage(player, 8.0f);
         }
-        /* A strong gust gives loose debris a brief lift. The actual scene physics
-         * still owns player movement, while this keeps environmental debris lively. */
         windstorm_visit(storm, player, scene, 0.045f, gust * 0.35f);
     }
 }
@@ -109,6 +105,20 @@ void nds_disaster_system_init(nds_disaster_system* system)
     system->active = 0;
 }
 
+void nds_disaster_system_set_settings(nds_disaster_system* system,
+                                       const nds_disaster_settings* settings)
+{
+    if (!system || !settings) return;
+    if (settings->warning_duration > 0.0f)
+        system->warning_duration = settings->warning_duration;
+    if (settings->earthquake_pulse_interval > 0.0f)
+        system->earthquake.pulse_interval = settings->earthquake_pulse_interval;
+    if (settings->windstorm_gust_interval > 0.0f)
+        system->windstorm.gust_interval = settings->windstorm_gust_interval;
+    if (settings->windstorm_strength > 0.0f)
+        system->windstorm.strength = settings->windstorm_strength;
+}
+
 void nds_disaster_system_start(nds_disaster_system* system, nds_disaster_type type)
 {
     if (!system) return;
@@ -134,7 +144,6 @@ void nds_disaster_system_update(nds_disaster_system* system,
 {
     float active_dt;
     if (!system || !system->active || dt <= 0.0f) return;
-
     active_dt = dt;
     if (system->warning_remaining > 0.0f) {
         float warning_step = dt;
@@ -142,13 +151,11 @@ void nds_disaster_system_update(nds_disaster_system* system,
             warning_step = system->warning_remaining;
         system->warning_remaining -= warning_step;
         active_dt -= warning_step;
-        if (system->warning_remaining > 0.0f || active_dt <= 0.0f)
-            return;
+        if (system->warning_remaining > 0.0f || active_dt <= 0.0f) return;
         system->warning_remaining = 0.0f;
         start_active_disaster(system);
         if (!system->active) return;
     }
-
     switch (system->active_type) {
     case NDS_DISASTER_EARTHQUAKE:
         nds_earthquake_update(&system->earthquake, player, scene, active_dt);
