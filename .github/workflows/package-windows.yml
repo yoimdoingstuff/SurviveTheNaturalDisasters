@@ -1,0 +1,51 @@
+name: Windows distributable
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  package:
+    runs-on: windows-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure
+        run: cmake -S . -B build -G "Visual Studio 18 2026" -A x64
+
+      - name: Build
+        run: cmake --build build --config Release
+
+      - name: Test
+        run: ctest --test-dir build -C Release --output-on-failure
+
+      - name: Assemble distributable
+        shell: pwsh
+        run: |
+          $package = Join-Path $env:GITHUB_WORKSPACE 'package'
+          if (Test-Path $package) { Remove-Item -Recurse -Force $package }
+          New-Item -ItemType Directory -Path $package | Out-Null
+
+          Copy-Item 'build\Release\nds_runtime.exe' (Join-Path $package 'nds_runtime.exe')
+          Copy-Item 'game' (Join-Path $package 'game') -Recurse
+
+          $requiredMap = Join-Path $package 'game\content\maps\island_ruins.ndsmap.json'
+          if (-not (Test-Path $requiredMap)) {
+            throw "Required island map was not included in the distributable: $requiredMap"
+          }
+
+          $zip = Join-Path $env:GITHUB_WORKSPACE 'SurviveTheNaturalDisasters-Windows.zip'
+          if (Test-Path $zip) { Remove-Item -Force $zip }
+          Compress-Archive -Path (Join-Path $package '*') -DestinationPath $zip -CompressionLevel Optimal
+
+      - name: Upload distributable ZIP
+        uses: actions/upload-artifact@v4
+        with:
+          name: SurviveTheNaturalDisasters-Windows
+          path: SurviveTheNaturalDisasters-Windows.zip
+          if-no-files-found: error
+          retention-days: 30
