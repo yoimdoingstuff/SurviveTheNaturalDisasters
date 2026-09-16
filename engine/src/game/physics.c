@@ -121,7 +121,7 @@ static void integrate_body(nds_physics_world* w,nds_physics_body* b,float dt)
 static void apply_support_friction(nds_physics_body* dynamic_body,const nds_physics_body* other,float dt)
 {
     float speed,normal_force,impulse,mu;
-    if(!dynamic_body->dynamic||!dynamic_body->grounded||other->dynamic)return;
+    if(!dynamic_body->dynamic||other->dynamic)return;
     speed=sqrtf(dynamic_body->velocity.x*dynamic_body->velocity.x+dynamic_body->velocity.z*dynamic_body->velocity.z);
     if(speed<=0.0001f)return;
     mu=sqrtf(maxf(0.0f,dynamic_body->friction)*maxf(0.0f,other->friction));
