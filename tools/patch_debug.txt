@@ -1,0 +1,11 @@
+Traceback (most recent call last):
+  File "<stdin>", line 3, in <module>
+  File "<frozen importlib._bootstrap_external>", line 995, in exec_module
+  File "<frozen importlib._bootstrap>", line 488, in _call_with_frames_removed
+  File "/home/runner/work/SurviveTheNaturalDisasters/SurviveTheNaturalDisasters/tools/apply_ui_world_patch.py", line 96, in <module>
+    patch_header()
+  File "/home/runner/work/SurviveTheNaturalDisasters/SurviveTheNaturalDisasters/tools/apply_ui_world_patch.py", line 21, in patch_header
+    replace_once(
+  File "/home/runner/work/SurviveTheNaturalDisasters/SurviveTheNaturalDisasters/tools/apply_ui_world_patch.py", line 15, in replace_once
+    raise RuntimeError(f"patch target not found: {path}: {pattern[:120]}")
+RuntimeError: patch target not found: engine/include/engine/render/gles2.h: typedef struct nds_hud_state \{\s*const nds_player_controller\* player;\s*const nds_round\* round;\s*const nds_disaster_
