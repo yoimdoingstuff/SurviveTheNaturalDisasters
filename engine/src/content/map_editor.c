@@ -1,6 +1,7 @@
 #include "engine/content/map_editor.h"
 
 #include <math.h>
+#include <stdio.h>
 #include <string.h>
 
 static nds_instance* selected_or_null(const nds_map_editor* editor)
