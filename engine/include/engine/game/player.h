@@ -20,6 +20,8 @@ typedef struct nds_player_controller {
     float health;
     float camera_yaw;
     float camera_pitch;
+    float facing_yaw;
+    float animation_time;
     uint8_t grounded;
     uint8_t alive;
     uint8_t third_person;
