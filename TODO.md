@@ -212,7 +212,7 @@ Legend:
 - [x] Spawn selection
 - [x] Player elimination/survival logic
 - [ ] Spectating
-- [~] Results screen <!-- result state and HUD result data exist; dedicated presentation remains -->
+- [~] Results screen <!-- result state, outcome helper, and HUD result data exist; dedicated presentation remains -->
 - [x] Base HUD
 - [ ] Audio integration
 - [ ] Save/config support
