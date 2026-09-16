@@ -48,7 +48,7 @@ int main(void)
     nds_disaster_system_update(&system, &player, scene, 2.0f);
     assert(!nds_disaster_is_warning(&system));
     assert(system.earthquake.active == 1);
-    assert(system.earthquake.elapsed > 0.0f);
+    assert(system.earthquake.elapsed < 0.001f);
 
     nds_disaster_system_stop(&system, scene);
     assert(system.active == 0);
@@ -63,7 +63,12 @@ int main(void)
     nds_disaster_system_update(&system, &player, scene, 3.0f);
     assert(!nds_disaster_is_warning(&system));
     assert(system.windstorm.active == 1);
-    assert(system.windstorm.elapsed > 0.0f);
+    assert(system.windstorm.elapsed < 0.001f);
+    assert(nds_part_get_position(part, &after) == NDS_OK);
+    assert(fabsf(after.x - before.x) + fabsf(after.z - before.z) < 0.001f);
+
+    nds_disaster_system_update(&system, &player, scene, 0.5f);
+    assert(system.windstorm.elapsed > 0.49f);
     assert(nds_part_get_position(part, &after) == NDS_OK);
     assert(fabsf(after.x - before.x) + fabsf(after.z - before.z) > 0.0f);
 
