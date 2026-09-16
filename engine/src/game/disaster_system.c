@@ -7,14 +7,23 @@ static void windstorm_visit(nds_windstorm* storm, nds_player_controller* player,
 {
     size_t i;
     if (!node) return;
-    if (nds_instance_get_class(node) == NDS_CLASS_PART ||
-        nds_instance_get_class(node) == NDS_CLASS_SPAWN_POINT) {
+    if (nds_instance_get_class(node) == NDS_CLASS_PART) {
         nds_part_properties p;
         if (nds_part_get_properties(node, &p) == NDS_OK && !p.anchored && p.visible) {
             float phase = p.position.x * 0.11f + p.position.z * 0.07f + storm->elapsed * 1.7f;
-            p.position.x += cosf(phase) * gust * dt;
-            p.position.z += sinf(phase * 0.83f) * gust * dt;
-            nds_part_set_position(node, p.position);
+            float lateral = cosf(phase) * gust;
+            float crosswind = sinf(phase * 0.83f) * gust;
+            p.position.x += lateral * dt;
+            p.position.z += crosswind * dt;
+            /* Loose debris tumbles as the wind catches it. Keep the rotation bounded
+             * so repeated frames do not eventually overflow the transform. */
+            p.rotation.x += crosswind * 0.018f * dt;
+            p.rotation.y += lateral * 0.012f * dt;
+            p.rotation.z += gust * 0.010f * sinf(phase * 1.31f) * dt;
+            if (p.rotation.x > 360.0f || p.rotation.x < -360.0f) p.rotation.x = fmodf(p.rotation.x, 360.0f);
+            if (p.rotation.y > 360.0f || p.rotation.y < -360.0f) p.rotation.y = fmodf(p.rotation.y, 360.0f);
+            if (p.rotation.z > 360.0f || p.rotation.z < -360.0f) p.rotation.z = fmodf(p.rotation.z, 360.0f);
+            nds_part_set_properties(node, &p);
         }
     }
     for (i = 0; i < nds_instance_child_count(node); ++i)
@@ -67,6 +76,9 @@ static void windstorm_update(nds_windstorm* storm, nds_player_controller* player
             if (!player->grounded && gust > storm->strength * 0.9f)
                 nds_player_damage(player, 8.0f);
         }
+        /* A strong gust gives loose debris a brief lift. The actual scene physics
+         * still owns player movement, while this keeps environmental debris lively. */
+        windstorm_visit(storm, player, scene, 0.045f, gust * 0.35f);
     }
 }
 
