@@ -37,5 +37,7 @@ float nds_round_phase_progress(const nds_round* round);
 int nds_round_is_countdown(const nds_round* round);
 const char* nds_round_state_name(nds_round_state state);
 const char* nds_disaster_type_name(nds_disaster_type disaster);
+/* Human-readable outcome for the results presentation. */
+const char* nds_round_result_name(const nds_round* round);
 
 #endif
