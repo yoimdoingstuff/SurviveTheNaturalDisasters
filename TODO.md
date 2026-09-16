@@ -66,7 +66,7 @@ Legend:
 - [~] Mesh loading <!-- NDSMESH parser, UV parsing, fixtures, map-reference resolution, CPU cache, draw-data propagation, and GPU buffer caching are implemented; source mesh conversion remains -->
 - [x] Transparency
 - [x] Persistent cube GPU buffers
-- [ ] UI rendering
+- [x] UI rendering
 - [ ] A6X performance test scene
 - [ ] iOS 8 renderer validation
 - [ ] Android GLES2 renderer validation
@@ -170,7 +170,7 @@ Legend:
 - [ ] Sky/lighting environment
 - [ ] Basic post-processing only where legacy hardware allows
 - [ ] Loading screens
-- [~] In-game HUD rendering
+- [x] In-game HUD rendering
 - [ ] Debug overlay
 - [ ] Pause/options UI
 
@@ -199,7 +199,7 @@ Legend:
 - [ ] Player elimination/survival logic
 - [ ] Spectating
 - [ ] Results screen
-- [ ] Base HUD
+- [x] Base HUD
 - [ ] Audio integration
 - [ ] Save/config support
 - [ ] Local settings persistence
