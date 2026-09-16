@@ -9,6 +9,29 @@ static const char* disaster_label(nds_disaster_type type)
     return nds_disaster_type_name(type);
 }
 
+static void environment_reset(nds_disaster_environment* environment)
+{
+    if (!environment) return;
+    environment->wind_intensity = 0.0f;
+    environment->shake_intensity = 0.0f;
+    environment->debris_intensity = 0.0f;
+    environment->water_intensity = 0.0f;
+    environment->fire_intensity = 0.0f;
+    environment->sky_darkness = 0.0f;
+}
+
+static void environment_warning(nds_disaster_system* system)
+{
+    float progress;
+    if (!system) return;
+    progress = system->warning_duration > 0.0f
+        ? system->warning_remaining / system->warning_duration : 0.0f;
+    if (progress < 0.0f) progress = 0.0f;
+    if (progress > 1.0f) progress = 1.0f;
+    environment_reset(&system->environment);
+    system->environment.sky_darkness = 0.10f + 0.15f * progress;
+}
+
 static void windstorm_visit(nds_windstorm* storm, nds_player_controller* player,
                             nds_instance* node, float dt, float gust)
 {
@@ -104,11 +127,44 @@ static void start_active_disaster(nds_disaster_system* system)
     platform_set_window_title(title);
 }
 
+static void update_environment(nds_disaster_system* system)
+{
+    if (!system) return;
+    environment_reset(&system->environment);
+    if (!system->active) return;
+    if (system->warning_remaining > 0.0f) {
+        environment_warning(system);
+        return;
+    }
+    switch (system->active_type) {
+    case NDS_DISASTER_EARTHQUAKE:
+        system->environment.shake_intensity = 0.45f +
+            0.35f * fabsf(sinf(system->earthquake.elapsed * 9.0f));
+        system->environment.debris_intensity = system->earthquake.pulse_count > 0
+            ? fminf(1.0f, 0.25f + 0.18f * (float)system->earthquake.pulse_count)
+            : 0.0f;
+        system->environment.sky_darkness = 0.18f +
+            0.08f * system->environment.shake_intensity;
+        break;
+    case NDS_DISASTER_WINDSTORM:
+        system->environment.wind_intensity = fminf(1.0f,
+            0.45f + 0.55f * fabsf(sinf(system->windstorm.elapsed * 2.1f)));
+        system->environment.debris_intensity = fminf(1.0f,
+            system->environment.wind_intensity * 0.65f);
+        system->environment.sky_darkness = 0.30f +
+            0.20f * system->environment.wind_intensity;
+        break;
+    default:
+        break;
+    }
+}
+
 void nds_disaster_system_init(nds_disaster_system* system)
 {
     if (!system) return;
     nds_earthquake_init(&system->earthquake);
     windstorm_init(&system->windstorm);
+    environment_reset(&system->environment);
     system->active_type = NDS_DISASTER_EARTHQUAKE;
     system->warning_duration = 3.0f;
     system->warning_remaining = 0.0f;
@@ -136,6 +192,7 @@ void nds_disaster_system_start(nds_disaster_system* system, nds_disaster_type ty
     system->active_type = type;
     system->warning_remaining = system->warning_duration;
     system->active = 1;
+    environment_warning(system);
     snprintf(title,sizeof(title),"Natural Disaster Survival | WARNING: %s",disaster_label(type));
     platform_set_window_title(title);
     switch (type) {
@@ -147,6 +204,7 @@ void nds_disaster_system_start(nds_disaster_system* system, nds_disaster_type ty
         break;
     default:
         system->active = 0;
+        environment_reset(&system->environment);
         break;
     }
 }
@@ -164,7 +222,10 @@ void nds_disaster_system_update(nds_disaster_system* system,
             warning_step = system->warning_remaining;
         system->warning_remaining -= warning_step;
         active_dt -= warning_step;
-        if (system->warning_remaining > 0.0f || active_dt <= 0.0f) return;
+        if (system->warning_remaining > 0.0f || active_dt <= 0.0f) {
+            environment_warning(system);
+            return;
+        }
         system->warning_remaining = 0.0f;
         start_active_disaster(system);
         if (!system->active) return;
@@ -180,6 +241,7 @@ void nds_disaster_system_update(nds_disaster_system* system,
         system->active = 0;
         break;
     }
+    update_environment(system);
 }
 
 void nds_disaster_system_stop(nds_disaster_system* system, nds_instance* scene)
@@ -197,6 +259,7 @@ void nds_disaster_system_stop(nds_disaster_system* system, nds_instance* scene)
     }
     system->warning_remaining = 0.0f;
     system->active = 0;
+    environment_reset(&system->environment);
     platform_set_window_title("Natural Disaster Survival | ENTER Play | I Import Roblox .rbxlx | M Menu | ESC Quit");
 }
 
