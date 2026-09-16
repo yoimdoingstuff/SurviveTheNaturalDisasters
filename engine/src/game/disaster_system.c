@@ -70,6 +70,22 @@ static void windstorm_update(nds_windstorm* storm, nds_player_controller* player
     }
 }
 
+static void start_active_disaster(nds_disaster_system* system)
+{
+    if (!system) return;
+    switch (system->active_type) {
+    case NDS_DISASTER_EARTHQUAKE:
+        nds_earthquake_start(&system->earthquake);
+        break;
+    case NDS_DISASTER_WINDSTORM:
+        windstorm_start(&system->windstorm);
+        break;
+    default:
+        system->active = 0;
+        break;
+    }
+}
+
 void nds_disaster_system_init(nds_disaster_system* system)
 {
     if (!system) return;
@@ -104,23 +120,29 @@ void nds_disaster_system_update(nds_disaster_system* system,
                                 nds_player_controller* player,
                                 nds_instance* scene, float dt)
 {
+    float active_dt;
     if (!system || !system->active || dt <= 0.0f) return;
+
+    active_dt = dt;
     if (system->warning_remaining > 0.0f) {
-        system->warning_remaining -= dt;
-        if (system->warning_remaining > 0.0f) return;
+        float warning_step = dt;
+        if (warning_step > system->warning_remaining)
+            warning_step = system->warning_remaining;
+        system->warning_remaining -= warning_step;
+        active_dt -= warning_step;
+        if (system->warning_remaining > 0.0f || active_dt <= 0.0f)
+            return;
         system->warning_remaining = 0.0f;
-        switch (system->active_type) {
-        case NDS_DISASTER_EARTHQUAKE: nds_earthquake_start(&system->earthquake); break;
-        case NDS_DISASTER_WINDSTORM: windstorm_start(&system->windstorm); break;
-        default: system->active = 0; return;
-        }
+        start_active_disaster(system);
+        if (!system->active) return;
     }
+
     switch (system->active_type) {
     case NDS_DISASTER_EARTHQUAKE:
-        nds_earthquake_update(&system->earthquake, player, scene, dt);
+        nds_earthquake_update(&system->earthquake, player, scene, active_dt);
         break;
     case NDS_DISASTER_WINDSTORM:
-        windstorm_update(&system->windstorm, player, scene, dt);
+        windstorm_update(&system->windstorm, player, scene, active_dt);
         break;
     default:
         system->active = 0;
