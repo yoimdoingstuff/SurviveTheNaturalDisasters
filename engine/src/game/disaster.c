@@ -26,6 +26,51 @@ static void move_parts(nds_instance* root, float dx, float dz)
     }
 }
 
+static int protected_part_name(const char* name)
+{
+    if (!name) return 0;
+    if (strncmp(name, "Player", 6) == 0) return 1;
+    if (strcmp(name, "Shelter") == 0 || strcmp(name, "ShelterRoof") == 0) return 1;
+    if (strcmp(name, "Spawn") == 0 || strcmp(name, "Ocean") == 0) return 1;
+    if (strcmp(name, "IslandBase") == 0 || strcmp(name, "IslandShore") == 0) return 1;
+    if (strncmp(name, "Island", 6) == 0) return 1;
+    return 0;
+}
+
+static void break_map_blocks(nds_instance* root, uint32_t pulse_count)
+{
+    static uint32_t serial = 0;
+    size_t i;
+    if (!root) return;
+    for (i = 0; i < nds_instance_child_count(root); ++i) {
+        nds_instance* child = (nds_instance*)nds_instance_child_at(root, i);
+        nds_part_properties props;
+        const char* name;
+        if (!child) continue;
+        name = nds_instance_get_name(child);
+        if (nds_instance_get_class(child) == NDS_CLASS_PART &&
+            nds_part_get_properties(child, &props) == NDS_OK &&
+            props.visible && props.can_collide && !protected_part_name(name)) {
+            unsigned int pick = (unsigned int)((serial++ + pulse_count * 3u) % 7u);
+            if (pick <= 2u) {
+                float wobble = (float)((int)((serial * 13u) % 11u) - 5) * 0.08f;
+                props.anchored = 0;
+                props.rotation.x += wobble * 3.0f;
+                props.rotation.z -= wobble * 2.0f;
+                props.position.x += wobble;
+                props.position.z -= wobble * 0.7f;
+                nds_part_set_properties(child, &props);
+            } else if (pulse_count >= 2u && pick == 3u) {
+                props.anchored = 0;
+                props.can_collide = 0;
+                props.visible = 0;
+                nds_part_set_properties(child, &props);
+            }
+        }
+        if (nds_instance_child_count(child)) break_map_blocks(child, pulse_count);
+    }
+}
+
 static int player_in_shelter(nds_instance* node, nds_vec3 player_position)
 {
     size_t i;
@@ -113,6 +158,7 @@ void nds_earthquake_update(nds_earthquake* earthquake, nds_player_controller* pl
     if (earthquake->pulse_timer <= 0.0f) {
         earthquake->pulse_timer += earthquake->pulse_interval;
         earthquake->pulse_count++;
+        break_map_blocks(scene, earthquake->pulse_count);
         direction = (earthquake->pulse_count & 1u) ? 1.0f : -1.0f;
         player->velocity.x += direction * 5.0f;
         player->velocity.z += (earthquake->pulse_count % 3u == 0u) ? 4.0f : -3.0f;
