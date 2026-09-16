@@ -1,0 +1,35 @@
+name: Fix HUD text literal
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Repair generated character literal
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('engine/src/render/gles2_backend.c')
+          s = p.read_text(encoding='utf-8')
+          broken = "if(c=='\n')"
+          fixed = "if(c=='\\n')"
+          if broken not in s:
+              raise SystemExit('broken HUD newline literal not found')
+          s = s.replace(broken, fixed, 1)
+          p.write_text(s, encoding='utf-8')
+          PY
+      - name: Commit fix
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add engine/src/render/gles2_backend.c
+          git commit -m "Fix HUD text newline literal"
+          git push
