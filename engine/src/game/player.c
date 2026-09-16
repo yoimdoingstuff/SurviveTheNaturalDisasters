@@ -39,7 +39,7 @@ static void collide(nds_player_controller* pl,const nds_instance* root,int axis,
                 if(pl->velocity.y==0&&old-half>=by-.02f)pl->grounded=1;
             }else if(axis==2&&overlap(px0,px1,ax,bx)&&overlap(py0,py1,ay,by)){
                 if(pl->velocity.z>0&&old+half<=az+.01f&&pz1>az){pl->position.z=az-half;pl->velocity.z=0;}
-                else if(pl->velocity.z<0&&old-half>=bz-.01f&&pz0< bz){pl->position.z=bz+half;pl->velocity.z=0;}
+                else if(pl->velocity.z<0&&old-half>=bz-.01f&&pz0<bz){pl->position.z=bz+half;pl->velocity.z=0;}
             }
         }
         if(nds_instance_child_count(c))collide(pl,c,axis,old,half);
@@ -68,21 +68,27 @@ static void press_named_button(nds_instance* scene,const char* name){
 
 static void launch_land_interact(nds_player_controller* p,const nds_instance* scene){
     static int last_mouse_down=0;
-    const nds_instance* root=scene;int mouse_down=platform_is_mouse_button_down(0);size_t i,n;
-    if(!p||!scene||!root||strcmp(nds_instance_get_name(root),"Launch Land")!=0){last_mouse_down=mouse_down;return;}
+    int mouse_down=platform_is_mouse_button_down(0);size_t i,n;
+    if(!p||!scene||strcmp(nds_instance_get_name(scene),"Launch Land")!=0){last_mouse_down=mouse_down;return;}
     if(!mouse_down||last_mouse_down){last_mouse_down=mouse_down;return;}
-    n=nds_instance_child_count(root);
-    for(i=0;i<n;++i){const nds_instance* c=nds_instance_child_at(root,i);nds_part_properties q;float dx,dy,dz,dist2;if(!c||nds_instance_get_class(c)!=NDS_CLASS_PART)continue;if(strncmp(nds_instance_get_name(c),"ServiceTowerButton",18)!=0&&strcmp(nds_instance_get_name(c),"BridgeButton")!=0&&strcmp(nds_instance_get_name(c),"RocketLaunchButton")!=0)continue;if(nds_part_get_properties(c,&q)!=NDS_OK)continue;dx=q.position.x-p->position.x;dy=q.position.y-p->position.y;dz=q.position.z-p->position.z;dist2=dx*dx+dy*dy+dz*dz;if(dist2<=16.0f)press_named_button((nds_instance*)scene,nds_instance_get_name(c));}
+    n=nds_instance_child_count(scene);
+    for(i=0;i<n;++i){
+        const nds_instance* c=nds_instance_child_at(scene,i);nds_part_properties q;const char* name;float dx,dy,dz,dist2;
+        if(!c||nds_instance_get_class(c)!=NDS_CLASS_PART)continue;name=nds_instance_get_name(c);if(!name)continue;
+        if(strncmp(name,"ServiceTowerButton",18)!=0&&strcmp(name,"BridgeButton")!=0&&strcmp(name,"RocketLaunchButton")!=0)continue;
+        if(nds_part_get_properties(c,&q)!=NDS_OK)continue;dx=q.position.x-p->position.x;dy=q.position.y-p->position.y;dz=q.position.z-p->position.z;dist2=dx*dx+dy*dy+dz*dz;
+        if(dist2<=16.0f)press_named_button((nds_instance*)scene,name);
+    }
     last_mouse_down=mouse_down;
 }
 
 void nds_player_update(nds_player_controller* p,const nds_instance* scene,float dt,int f,int b,int l,int r,int jump){
     float local_x,local_forward,len,ox,oy,oz,yaw,s,c,target_x,target_z,target_facing;const float acceleration=52.0f,deceleration=68.0f,facing_turn_speed=1080.0f;
     if(!p||!scene||!p->alive)return;if(dt<0)dt=0;if(dt>.05f)dt=.05f;
-    local_x=(float)(r-l);local_forward=(float)(f-b);len=sqrtf(local_x*local_x+local_forward*local_forward);
-    if(len>0.001f){local_x/=len;local_forward/=len;}else{local_x=0;local_forward=0;}
+    if(p->third_person){if(platform_is_key_down(PLATFORM_KEY_Q))nds_player_zoom_camera(p,12.0f*dt);if(platform_is_key_down(PLATFORM_KEY_E))nds_player_zoom_camera(p,-12.0f*dt);}
+    local_x=(float)(r-l);local_forward=(float)(f-b);len=sqrtf(local_x*local_x+local_forward*local_forward);if(len>0.001f){local_x/=len;local_forward/=len;}else{local_x=0;local_forward=0;}
     yaw=rad(p->camera_yaw);s=sinf(yaw);c=cosf(yaw);target_x=local_forward*(-s)+local_x*c;target_z=local_forward*(-c)+local_x*(-s);
-    if(len>0.001f){p->velocity.x=move_toward(p->velocity.x,target_x*p->move_speed,acceleration*dt);p->velocity.z=move_toward(p->velocity.z,target_z*p->move_speed,acceleration*dt);target_facing=deg(atan2f(target_x,-target_z));p->facing_yaw=approach_angle(p->facing_yaw,target_facing,facing_turn_speed*dt);p->animation_time+=dt*(p->grounded?9.0f:4.0f);}else{p->velocity.x=move_toward(p->velocity.x,0,dec eleration*dt);p->velocity.z=move_toward(p->velocity.z,0,deceleration*dt);p->animation_time+=dt*2.0f;}
+    if(len>0.001f){p->velocity.x=move_toward(p->velocity.x,target_x*p->move_speed,acceleration*dt);p->velocity.z=move_toward(p->velocity.z,target_z*p->move_speed,acceleration*dt);target_facing=deg(atan2f(target_x,-target_z));p->facing_yaw=approach_angle(p->facing_yaw,target_facing,facing_turn_speed*dt);p->animation_time+=dt*(p->grounded?9.0f:4.0f);}else{p->velocity.x=move_toward(p->velocity.x,0,deceleration*dt);p->velocity.z=move_toward(p->velocity.z,0,deceleration*dt);p->animation_time+=dt*2.0f;}
     if(jump&&p->grounded){p->velocity.y=p->jump_speed;p->grounded=0;}p->velocity.y-=p->gravity*dt;ox=p->position.x;oy=p->position.y;oz=p->position.z;p->grounded=0;
     p->position.x+=p->velocity.x*dt;collide(p,scene,0,ox,p->half_width);p->position.y+=p->velocity.y*dt;collide(p,scene,1,oy,p->half_height);p->position.z+=p->velocity.z*dt;collide(p,scene,2,oz,p->half_width);if(p->position.y<-20)nds_player_damage(p,100.0f);
     launch_land_interact(p,scene);
@@ -96,35 +102,31 @@ static nds_mesh* rounded_character_mesh(void){
     mesh.vertex_count=(segments+1)*(rings+1);mesh.index_count=segments*rings*6;mesh.vertices=(nds_mesh_vertex*)calloc(mesh.vertex_count,sizeof(*mesh.vertices));mesh.indices=(uint16_t*)calloc(mesh.index_count,sizeof(*mesh.indices));
     if(!mesh.vertices||!mesh.indices){free(mesh.vertices);free(mesh.indices);mesh.vertices=NULL;mesh.indices=NULL;return NULL;}
     for(j=0;j<=rings;++j){float v=-1.57079632679f+3.14159265359f*(float)j/(float)rings,cv=cosf(v),sv=sinf(v),cvp=signed_power(cv,exponent),svp=signed_power(sv,exponent);for(i=0;i<=segments;++i){float u=-3.14159265359f+6.28318530718f*(float)i/(float)segments,cu=cosf(u),su=sinf(u),cup=signed_power(cu,exponent),sup=signed_power(su,exponent);index=j*(segments+1)+i;mesh.vertices[index].x=.5f*cvp*cup;mesh.vertices[index].y=.5f*svp;mesh.vertices[index].z=.5f*cvp*sup;mesh.vertices[index].u=(float)i/(float)segments;mesh.vertices[index].v=(float)j/(float)rings;}}
-    index=0;for(j=0;j<rings;++j)for(i=0;i<segments;++i){uint16_t a=(uint16_t)(j*(segments+1)+i),b=(uint16_t)(a+1),cc=(uint16_t)((j+1)*(segments+1)+i+1),d=(uint16_t)((j+1)*(segments+1)+i);mesh.indices[index++]=a;mesh.indices[index++]=b;mesh.indices[index++]=cc;mesh.indices[index++]=a;mesh.indices[index++]=cc;mesh.indices[index++]=d;}
-    return &mesh;
+    index=0;for(j=0;j<rings;++j)for(i=0;i<segments;++i){uint16_t a=(uint16_t)(j*(segments+1)+i),b=(uint16_t)(a+1),cc=(uint16_t)((j+1)*(segments+1)+i+1),d=(uint16_t)((j+1)*(segments+1)+i);mesh.indices[index++]=a;mesh.indices[index++]=b;mesh.indices[index++]=cc;mesh.indices[index++]=a;mesh.indices[index++]=cc;mesh.indices[index++]=d;}return &mesh;
 }
 
 static void set_part(nds_instance* part,nds_vec3 position,nds_vec3 size,uint32_t color,nds_vec3 rotation,int visible){nds_part_properties p;const char* name;if(!part||nds_part_get_properties(part,&p)!=NDS_OK)return;p.anchored=1;p.can_collide=0;p.visible=(uint8_t)(visible!=0);p.position=position;p.size=size;p.color_rgba=color;p.rotation=rotation;name=nds_instance_get_name(part);if(name&&strncmp(name,"Player",6)==0&&strcmp(name,"PlayerShadow")!=0)p.mesh=rounded_character_mesh();nds_part_set_properties(part,&p);}
 
 nds_result nds_player_attach_visual(nds_player_controller* p,nds_instance* scene){
     nds_instance *model,*body,*head,*left_arm,*right_arm,*left_leg,*right_leg,*shadow;nds_part_properties prop;
-    if(!p||!scene)return NDS_ERR_INVALID_ARG;if(nds_instance_find_child(scene,"PlayerAvatar"))return NDS_OK;
-    model=nds_instance_create(NDS_CLASS_MODEL,"PlayerAvatar");body=nds_instance_create(NDS_CLASS_PART,"PlayerTorso");head=nds_instance_create(NDS_CLASS_PART,"PlayerHead");left_arm=nds_instance_create(NDS_CLASS_PART,"PlayerLeftArm");right_arm=nds_instance_create(NDS_CLASS_PART,"PlayerRightArm");left_leg=nds_instance_create(NDS_CLASS_PART,"PlayerLeftLeg");right_leg=nds_instance_create(NDS_CLASS_PART,"PlayerRightLeg");shadow=nds_instance_create(NDS_CLASS_PART,"PlayerShadow");
+    if(!p||!scene)return NDS_ERR_INVALID_ARG;if(nds_instance_find_child(scene,"PlayerAvatar"))return NDS_OK;model=nds_instance_create(NDS_CLASS_MODEL,"PlayerAvatar");body=nds_instance_create(NDS_CLASS_PART,"PlayerTorso");head=nds_instance_create(NDS_CLASS_PART,"PlayerHead");left_arm=nds_instance_create(NDS_CLASS_PART,"PlayerLeftArm");right_arm=nds_instance_create(NDS_CLASS_PART,"PlayerRightArm");left_leg=nds_instance_create(NDS_CLASS_PART,"PlayerLeftLeg");right_leg=nds_instance_create(NDS_CLASS_PART,"PlayerRightLeg");shadow=nds_instance_create(NDS_CLASS_PART,"PlayerShadow");
     if(!model||!body||!head||!left_arm||!right_arm||!left_leg||!right_leg||!shadow){if(model)nds_instance_destroy(model);return NDS_ERR_UNKNOWN;}
     memset(&prop,0,sizeof(prop));prop.anchored=1;prop.can_collide=0;prop.visible=1;prop.size=(nds_vec3){.95f,1.05f,.55f};prop.color_rgba=0x2f6fedff;prop.position=p->position;nds_part_set_properties(body,&prop);prop.size=(nds_vec3){.82f,.82f,.82f};prop.color_rgba=0xf0c9a4ff;prop.position=(nds_vec3){p->position.x,p->position.y+1,p->position.z};nds_part_set_properties(head,&prop);prop.size=(nds_vec3){.38f,1,.42f};prop.color_rgba=0xf0c9a4ff;prop.position=(nds_vec3){p->position.x-.68f,p->position.y+.02f,p->position.z};nds_part_set_properties(left_arm,&prop);prop.position=(nds_vec3){p->position.x+.68f,p->position.y+.02f,p->position.z};nds_part_set_properties(right_arm,&prop);prop.size=(nds_vec3){.42f,1,.48f};prop.color_rgba=0x27364dff;prop.position=(nds_vec3){p->position.x-.25f,p->position.y-.98f,p->position.z};nds_part_set_properties(left_leg,&prop);prop.position=(nds_vec3){p->position.x+.25f,p->position.y-.98f,p->position.z};nds_part_set_properties(right_leg,&prop);prop.size=(nds_vec3){1.65f,.025f,1.1f};prop.color_rgba=0x17202b70u;prop.transparency=.55f;prop.position=(nds_vec3){p->position.x,p->position.y-p->half_height+.025f,p->position.z};nds_part_set_properties(shadow,&prop);
     if(nds_instance_set_parent(model,scene)!=NDS_OK||nds_instance_set_parent(body,model)!=NDS_OK||nds_instance_set_parent(head,model)!=NDS_OK||nds_instance_set_parent(left_arm,model)!=NDS_OK||nds_instance_set_parent(right_arm,model)!=NDS_OK||nds_instance_set_parent(left_leg,model)!=NDS_OK||nds_instance_set_parent(right_leg,model)!=NDS_OK||nds_instance_set_parent(shadow,model)!=NDS_OK){nds_instance_destroy(model);return NDS_ERR_UNKNOWN;}return NDS_OK;
 }
 
 void nds_player_update_visual(const nds_player_controller* p,nds_instance* scene){
-    nds_instance* model;float speed,phase,swing,bob,yaw,rx,rz,fx,fz;nds_vec3 body_pos,head_pos;if(!p||!scene)return;model=nds_instance_find_child(scene,"PlayerAvatar");if(!model)return;
-    speed=sqrtf(p->velocity.x*p->velocity.x+p->velocity.z*p->velocity.z);phase=p->animation_time;swing=speed>.1f?28.0f*sinf(phase):0;bob=speed>.1f?.045f*fabsf(sinf(phase)):0;yaw=p->facing_yaw;rx=cosf(rad(yaw));rz=-sinf(rad(yaw));fx=-sinf(rad(yaw));fz=-cosf(rad(yaw));body_pos=(nds_vec3){p->position.x,p->position.y+bob,p->position.z};head_pos=(nds_vec3){p->position.x,p->position.y+1+bob,p->position.z};
+    nds_instance* model;float speed,phase,swing,bob,yaw,rx,rz,fx,fz;nds_vec3 body_pos,head_pos;if(!p||!scene)return;model=nds_instance_find_child(scene,"PlayerAvatar");if(!model)return;speed=sqrtf(p->velocity.x*p->velocity.x+p->velocity.z*p->velocity.z);phase=p->animation_time;swing=speed>.1f?28.0f*sinf(phase):0;bob=speed>.1f?.045f*fabsf(sinf(phase)):0;yaw=p->facing_yaw;rx=cosf(rad(yaw));rz=-sinf(rad(yaw));fx=-sinf(rad(yaw));fz=-cosf(rad(yaw));body_pos=(nds_vec3){p->position.x,p->position.y+bob,p->position.z};head_pos=(nds_vec3){p->position.x,p->position.y+1+bob,p->position.z};
     {float arm_swing=.5f*sinf(rad(swing)),leg_swing=.5f*sinf(rad(-swing));nds_vec3 la=(nds_vec3){body_pos.x-rx*.68f+fx*arm_swing,body_pos.y+.02f,body_pos.z-rz*.68f+fz*arm_swing};nds_vec3 ra=(nds_vec3){body_pos.x+rx*.68f+fx*(-arm_swing),body_pos.y+.02f,body_pos.z+rz*.68f+fz*(-arm_swing)};nds_vec3 ll=(nds_vec3){body_pos.x-rx*.25f+fx*leg_swing,body_pos.y-.98f,body_pos.z-rz*.25f+fz*leg_swing};nds_vec3 rl=(nds_vec3){body_pos.x+rx*.25f+fx*(-leg_swing),body_pos.y-.98f,body_pos.z+rz*.25f+fz*(-leg_swing)};int show=p->alive&&p->third_person;set_part(child(model,"PlayerLeftArm"),la,(nds_vec3){.38f,1,.42f},0xf0c9a4ff,(nds_vec3){swing,yaw,0},show);set_part(child(model,"PlayerRightArm"),ra,(nds_vec3){.38f,1,.42f},0xf0c9a4ff,(nds_vec3){-swing,yaw,0},show);set_part(child(model,"PlayerLeftLeg"),ll,(nds_vec3){.42f,1,.48f},0x27364dff,(nds_vec3){-swing,yaw,0},show);set_part(child(model,"PlayerRightLeg"),rl,(nds_vec3){.42f,1,.48f},0x27364dff,(nds_vec3){swing,yaw,0},show);}
     {int show=p->alive&&p->third_person;set_part(child(model,"PlayerTorso"),body_pos,(nds_vec3){.95f,1.05f,.55f},0x2f6fedff,(nds_vec3){0,yaw,0},show);set_part(child(model,"PlayerHead"),head_pos,(nds_vec3){.82f,.82f,.82f},0xf0c9a4ff,(nds_vec3){0,yaw,0},show);set_part(child(model,"PlayerShadow"),(nds_vec3){p->position.x,p->position.y-p->half_height+.025f,p->position.z},(nds_vec3){1.65f,.025f,1.1f},0x17202b70u,(nds_vec3){0,0,0},show);}
 }
 
 void nds_player_rotate_camera(nds_player_controller* p,float yaw_delta,float pitch_delta){if(!p)return;p->camera_yaw+=yaw_delta;p->camera_pitch+=pitch_delta;if(p->camera_pitch<5)p->camera_pitch=5;if(p->camera_pitch>55)p->camera_pitch=55;}
-void nds_player_zoom_camera(nds_player_controller* p,float zoom_delta){if(!p||!p->third_person)return;p->camera_distance-=zoom_delta;if(p->camera_distance<2.0f)p->camera_distance=2.0f;if(p->camera_distance>24.0f)p->camera_distance=24.0f;}
+void nds_player_zoom_camera(nds_player_controller* p,float zoom_delta){if(!p||!p->third_person)return;p->camera_distance-=zoom_delta;if(p->camera_distance<2)p->camera_distance=2;if(p->camera_distance>24)p->camera_distance=24;}
 void nds_player_set_third_person(nds_player_controller* p,int enabled){if(p)p->third_person=enabled?1:0;}
 
 void nds_player_apply_camera(const nds_player_controller* p,nds_camera* camera){
     float yaw,pitch,cy,sy,cp,sp,dist;if(!p||!camera)return;yaw=rad(p->camera_yaw);pitch=rad(p->camera_pitch);cy=cosf(yaw);sy=sinf(yaw);cp=cosf(pitch);sp=sinf(pitch);dist=p->camera_distance;
-    /* Both modes pivot around the head rather than the torso. */
     camera->target[0]=p->position.x;camera->target[1]=p->position.y+1.0f;camera->target[2]=p->position.z;
     if(!p->third_person){camera->position[0]=p->position.x;camera->position[1]=p->position.y+1.0f;camera->position[2]=p->position.z;camera->target[0]=p->position.x-sy*cp;camera->target[1]=p->position.y+1.0f+sp;camera->target[2]=p->position.z-cy*cp;return;}
     camera->position[0]=p->position.x+sy*cp*dist;camera->position[1]=p->position.y+sp*dist+1.0f;camera->position[2]=p->position.z+cy*cp*dist;
