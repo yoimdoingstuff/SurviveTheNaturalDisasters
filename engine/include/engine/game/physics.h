@@ -39,6 +39,12 @@ nds_result nds_physics_add_scene(nds_physics_world* world, nds_instance* root);
 void nds_physics_clear(nds_physics_world* world);
 nds_physics_body* nds_physics_find_body(nds_physics_world* world, const nds_instance* instance);
 nds_result nds_physics_apply_impulse(nds_physics_world* world, nds_instance* instance, nds_vec3 impulse);
+/* Cast a ray against registered collidable parts. Direction is normalized
+ * internally. Returns NDS_OK with hit_instance == NULL when nothing is hit. */
+nds_result nds_physics_raycast(const nds_physics_world* world, nds_vec3 origin,
+                              nds_vec3 direction, float max_distance,
+                              nds_instance** hit_instance, float* hit_distance,
+                              nds_vec3* hit_normal);
 nds_result nds_physics_update(nds_physics_world* world, float dt);
 
 #ifdef __cplusplus
