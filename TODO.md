@@ -109,7 +109,7 @@ Legend:
 - [x] Primitive box collision
 - [x] Broad-phase collision detection <!-- sweep-and-prune with reusable index storage -->
 - [~] Narrow-phase collision tests <!-- conservative oriented-box AABB contact solver -->
-- [ ] Raycasts
+- [x] Raycasts <!-- primitive collidable-part ray tests with hit distance/normal -->
 - [ ] Overlap queries
 - [x] Gravity
 - [x] Velocity/acceleration integration
@@ -208,7 +208,7 @@ Legend:
 - [x] Multiple NDS development maps
 - [~] Multiple disaster types
 - [ ] Disaster configuration/settings
-- [~] Round timing configuration
+- [x] Round timing configuration API <!-- runtime phase durations can now be changed safely -->
 - [x] Spawn selection
 - [x] Player elimination/survival logic
 - [ ] Spectating
