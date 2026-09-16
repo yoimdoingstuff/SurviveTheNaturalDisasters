@@ -26,6 +26,35 @@ static void move_parts(nds_instance* root, float dx, float dz)
     }
 }
 
+static int player_in_shelter(nds_instance* node, nds_vec3 player_position)
+{
+    size_t i;
+    if (!node) return 0;
+    for (i = 0; i < nds_instance_child_count(node); ++i) {
+        nds_instance* child = (nds_instance*)nds_instance_child_at(node, i);
+        nds_part_properties p;
+        const char* name;
+        if (!child) continue;
+        name = nds_instance_get_name(child);
+        if (name && strcmp(name, "Shelter") == 0 &&
+            nds_part_get_properties(child, &p) == NDS_OK && p.visible) {
+            float radians = -p.rotation.y * 0.0174532925199433f;
+            float dx = player_position.x - p.position.x;
+            float dz = player_position.z - p.position.z;
+            float local_x = dx * cosf(radians) - dz * sinf(radians);
+            float local_z = dx * sinf(radians) + dz * cosf(radians);
+            float half_x = p.size.x * 0.5f;
+            float half_y = p.size.y * 0.5f;
+            float half_z = p.size.z * 0.5f;
+            if (fabsf(local_x) <= half_x && fabsf(player_position.y - p.position.y) <= half_y + 0.75f &&
+                fabsf(local_z) <= half_z)
+                return 1;
+        }
+        if (player_in_shelter(child, player_position)) return 1;
+    }
+    return 0;
+}
+
 void nds_earthquake_init(nds_earthquake* earthquake)
 {
     if (!earthquake) return;
@@ -52,9 +81,8 @@ void nds_earthquake_start(nds_earthquake* earthquake)
 void nds_earthquake_stop(nds_earthquake* earthquake, nds_instance* scene)
 {
     if (!earthquake) return;
-    if (earthquake->active && scene) {
+    if (earthquake->active && scene)
         move_parts(scene, -earthquake->previous_shake_x, -earthquake->previous_shake_z);
-    }
     earthquake->previous_shake_x = 0.0f;
     earthquake->previous_shake_z = 0.0f;
     earthquake->active = 0;
@@ -88,6 +116,7 @@ void nds_earthquake_update(nds_earthquake* earthquake, nds_player_controller* pl
         direction = (earthquake->pulse_count & 1u) ? 1.0f : -1.0f;
         player->velocity.x += direction * 5.0f;
         player->velocity.z += (earthquake->pulse_count % 3u == 0u) ? 4.0f : -3.0f;
-        nds_player_damage(player, player->grounded ? 10.0f : 25.0f);
+        if (!player_in_shelter(scene, player->position))
+            nds_player_damage(player, player->grounded ? 10.0f : 25.0f);
     }
 }
