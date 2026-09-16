@@ -12,8 +12,11 @@ size_t nds_map_catalog_count(void);
 const char* nds_map_catalog_path(size_t index);
 const char* nds_map_catalog_name(size_t index);
 
-/* Deterministic round-based selection. This is deliberately simple so the
- * same map order can later be shared by offline and host-authoritative modes. */
+/* The menu can override the normal round rotation with a selected map. */
+void nds_map_catalog_set_selected(size_t index);
+size_t nds_map_catalog_selected(void);
+
+/* Deterministic round-based selection unless the menu has selected a map. */
 size_t nds_map_catalog_select(size_t round_number);
 
 #ifdef __cplusplus
