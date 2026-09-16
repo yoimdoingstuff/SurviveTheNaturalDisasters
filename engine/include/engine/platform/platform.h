@@ -26,6 +26,7 @@ typedef enum platform_key {
 int platform_is_key_down(platform_key key);
 void platform_get_mouse_position(int* out_x,int* out_y);
 int platform_is_mouse_button_down(int button_index);
+int platform_consume_mouse_wheel(void);
 
 /* Windows currently supplies the native implementation. The returned path is
  * written into the caller-owned buffer and is empty when the dialog is
