@@ -19,7 +19,7 @@ These tasks are informed by classic Roblox disaster-survival design and the main
 - [ ] Add disaster-specific environmental presentation (falling debris, wind, water, fire, sky/light changes)
 - [~] Add multiple distinct shelters/strategic routes per map
 - [~] Add map-specific interactive props/buttons where the reference design calls for them
-- [ ] Add map validation rules for minimum size, spawn safety, block granularity, and disaster interaction
+- [~] Add map validation rules for minimum size, spawn safety, block granularity, and disaster interaction
 - [x] Build a reference-informed map import/port workflow for supplied Natural Disaster Survival maps
 - [~] Port the first supplied/reference map into project-owned .ndsmap.json data after provenance/licensing review
 - [~] Port additional classic maps using the same block-by-block workflow
