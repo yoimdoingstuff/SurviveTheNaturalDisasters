@@ -12,7 +12,7 @@ These tasks are informed by classic Roblox disaster-survival design and the main
 
 - [~] Establish a larger, multi-zone map scale appropriate for survival gameplay
 - [~] Make playable maps primarily from individually addressable blocks/parts
-- [~] Make disaster damage visibly alter map structures
+- [x] Make disaster damage visibly alter map structures
 - [x] Show the active/incoming disaster name in-game
 - [x] Roblox-style RMB camera capture/relative-look behavior on Windows
 - [x] Add Roblox-style third-person camera zoom, head-height orbit, and usable first-person mode
