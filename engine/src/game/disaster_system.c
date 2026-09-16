@@ -1,6 +1,13 @@
 #include "engine/game/disaster_system.h"
 #include "engine/scene/part.h"
+#include "engine/platform/platform.h"
 #include <math.h>
+#include <stdio.h>
+
+static const char* disaster_label(nds_disaster_type type)
+{
+    return nds_disaster_type_name(type);
+}
 
 static void windstorm_visit(nds_windstorm* storm, nds_player_controller* player,
                             nds_instance* node, float dt, float gust)
@@ -33,8 +40,8 @@ static void windstorm_init(nds_windstorm* storm)
 {
     storm->elapsed = 0.0f;
     storm->gust_timer = 0.0f;
-    storm->gust_interval = 2.5f;
-    storm->strength = 18.0f;
+    storm->gust_interval = 1.6f;
+    storm->strength = 30.0f;
     storm->gust_count = 0;
     storm->active = 0;
 }
@@ -69,17 +76,18 @@ static void windstorm_update(nds_windstorm* storm, nds_player_controller* player
         storm->gust_timer += storm->gust_interval;
         if (storm->gust_timer <= 0.0f) storm->gust_timer = storm->gust_interval;
         if (player && player->alive) {
-            player->velocity.x += gust * 0.35f;
-            player->velocity.z += gust * 0.20f;
-            if (!player->grounded && gust > storm->strength * 0.9f)
+            player->velocity.x += gust * 0.50f;
+            player->velocity.z += gust * 0.30f;
+            if (!player->grounded && gust > storm->strength * 0.75f)
                 nds_player_damage(player, 8.0f);
         }
-        windstorm_visit(storm, player, scene, 0.045f, gust * 0.35f);
+        windstorm_visit(storm, player, scene, 0.060f, gust * 0.50f);
     }
 }
 
 static void start_active_disaster(nds_disaster_system* system)
 {
+    char title[128];
     if (!system) return;
     switch (system->active_type) {
     case NDS_DISASTER_EARTHQUAKE:
@@ -90,8 +98,10 @@ static void start_active_disaster(nds_disaster_system* system)
         break;
     default:
         system->active = 0;
-        break;
+        return;
     }
+    snprintf(title,sizeof(title),"Natural Disaster Survival | DISASTER: %s",disaster_label(system->active_type));
+    platform_set_window_title(title);
 }
 
 void nds_disaster_system_init(nds_disaster_system* system)
@@ -121,10 +131,13 @@ void nds_disaster_system_set_settings(nds_disaster_system* system,
 
 void nds_disaster_system_start(nds_disaster_system* system, nds_disaster_type type)
 {
+    char title[128];
     if (!system) return;
     system->active_type = type;
     system->warning_remaining = system->warning_duration;
     system->active = 1;
+    snprintf(title,sizeof(title),"Natural Disaster Survival | WARNING: %s",disaster_label(type));
+    platform_set_window_title(title);
     switch (type) {
     case NDS_DISASTER_EARTHQUAKE:
         nds_earthquake_stop(&system->earthquake, NULL);
@@ -184,6 +197,7 @@ void nds_disaster_system_stop(nds_disaster_system* system, nds_instance* scene)
     }
     system->warning_remaining = 0.0f;
     system->active = 0;
+    platform_set_window_title("Natural Disaster Survival | ENTER Play | I Import Roblox .rbxlx | M Menu | ESC Quit");
 }
 
 float nds_disaster_warning_remaining(const nds_disaster_system* system)
