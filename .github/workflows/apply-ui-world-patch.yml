@@ -1,0 +1,29 @@
+name: Apply UI and world patch
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Apply patch
+        run: python3 tools/apply_ui_world_patch.py
+      - name: Commit patched sources
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if git diff --quiet; then
+            echo "No changes needed"
+            exit 0
+          fi
+          git add engine/include/engine/render/gles2.h engine/src/core/app.c engine/src/render/gles2_backend.c engine/src/content/map_loader.c
+          git commit -m "Implement visual menu, text HUD, map selection, and island water"
+          git push
