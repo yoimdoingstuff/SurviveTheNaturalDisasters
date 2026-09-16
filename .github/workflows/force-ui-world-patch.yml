@@ -21,13 +21,13 @@ jobs:
           s=p.read_text(encoding='utf-8')
           old='''typedef struct nds_hud_state {\n    const nds_player_controller* player;\n    const nds_round* round;\n    const nds_disaster_system* disasters;\n} nds_hud_state;'''
           new='''typedef struct nds_hud_state {\n    const nds_player_controller* player;\n    const nds_round* round;\n    const nds_disaster_system* disasters;\n    int menu_active;\n} nds_hud_state; /* NDS_UI_WORLD_PATCH_V2 */'''
-          if old not in s: raise SystemExit('header literal block not found')
-          p.write_text(s.replace(old,new,1),encoding='utf-8')
-          import importlib.util
-          spec=importlib.util.spec_from_file_location('patcher','tools/apply_ui_world_patch.py')
-          mod=importlib.util.module_from_spec(spec); spec.loader.exec_module(mod)
-          mod.MARK='__FORCED_UI_WORLD_PATCH_APPLIED__'
-          mod.patch_app(); mod.patch_backend(); mod.patch_world_loader()
+          if old in s: p.write_text(s.replace(old,new,1),encoding='utf-8')
+          src=Path('tools/apply_ui_world_patch.py').read_text(encoding='utf-8')
+          src=src.replace('\npatch_header()\npatch_app()\npatch_backend()\npatch_world_loader()\nprint("UI/world patch applied")\n','\n')
+          ns={}
+          exec(compile(src,'apply_ui_world_patch.py','exec'),ns)
+          ns['MARK']='__FORCED_UI_WORLD_PATCH_APPLIED__'
+          ns['patch_app'](); ns['patch_backend'](); ns['patch_world_loader']()
           print('forced patch applied')
           PY
       - name: Commit source changes
