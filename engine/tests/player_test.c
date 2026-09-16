@@ -30,10 +30,11 @@ int main(void)
     nds_instance* scene = make_scene();
     nds_player_controller player;
     nds_camera camera;
-    nds_vec3 body_position;
     nds_instance* avatar;
-    nds_instance* body;
-    nds_part_properties body_props;
+    nds_instance* torso;
+    nds_instance* left_arm;
+    nds_instance* right_arm;
+    nds_part_properties torso_props, left_props, right_props;
 
     nds_player_init(&player, scene);
     assert(player.alive);
@@ -45,11 +46,27 @@ int main(void)
     assert(nds_player_attach_visual(&player, scene) == NDS_OK);
     avatar = nds_instance_find_child(scene, "PlayerAvatar");
     assert(avatar);
-    body = nds_instance_find_child(avatar, "PlayerBody");
-    assert(body && nds_part_get_properties(body, &body_props) == NDS_OK);
-    body_position = body_props.position;
-    assert(fabsf(body_position.x - player.position.x) < 0.001f);
-    assert(fabsf(body_position.y - player.position.y) < 0.001f);
+    torso = nds_instance_find_child(avatar, "PlayerTorso");
+    left_arm = nds_instance_find_child(avatar, "PlayerLeftArm");
+    right_arm = nds_instance_find_child(avatar, "PlayerRightArm");
+    assert(torso && left_arm && right_arm);
+    assert(nds_part_get_properties(torso, &torso_props) == NDS_OK);
+    assert(nds_part_get_properties(left_arm, &left_props) == NDS_OK);
+    assert(nds_part_get_properties(right_arm, &right_props) == NDS_OK);
+    assert(fabsf(torso_props.position.x - player.position.x) < 0.001f);
+    assert(fabsf(torso_props.position.y - player.position.y) < 0.001f);
+    assert(left_props.position.x < player.position.x);
+    assert(right_props.position.x > player.position.x);
+    assert(fabsf(left_props.position.z - player.position.z) < 0.001f);
+    assert(fabsf(right_props.position.z - player.position.z) < 0.001f);
+    assert(left_props.mesh != NULL);
+    assert(right_props.mesh != NULL);
+
+    nds_player_update_visual(&player, scene);
+    assert(nds_part_get_properties(left_arm, &left_props) == NDS_OK);
+    assert(nds_part_get_properties(right_arm, &right_props) == NDS_OK);
+    assert(left_props.position.x < player.position.x);
+    assert(right_props.position.x > player.position.x);
 
     nds_camera_init(&camera);
     nds_player_apply_camera(&player, &camera);
@@ -67,8 +84,8 @@ int main(void)
 
     player.alive = 0;
     nds_player_update_visual(&player, scene);
-    assert(nds_part_get_properties(body, &body_props) == NDS_OK);
-    assert(!body_props.visible);
+    assert(nds_part_get_properties(torso, &torso_props) == NDS_OK);
+    assert(!torso_props.visible);
 
     nds_instance_destroy(scene);
     return 0;
