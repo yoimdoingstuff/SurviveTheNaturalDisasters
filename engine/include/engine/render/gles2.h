@@ -26,7 +26,8 @@ typedef struct nds_hud_state {
     const nds_player_controller* player;
     const nds_round* round;
     const nds_disaster_system* disasters;
-} nds_hud_state;
+    int menu_active;
+} nds_hud_state; /* NDS_UI_WORLD_PATCH_V2 */
 
 nds_result nds_gles2_renderer_create(nds_gles2_renderer** out_renderer,
                                       const nds_gles2_desc* desc);
