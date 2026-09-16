@@ -32,11 +32,13 @@ int main(void)
 {
     nds_instance* root = nds_instance_create(NDS_CLASS_DATAMODEL, "PhysicsTest");
     nds_physics_world world;
-    nds_instance *floor, *box, *far_box, *wall;
+    nds_instance *floor, *box, *far_box, *wall, *switch_box;
     nds_vec3 pos, normal;
     nds_instance* hit = NULL;
     float distance = 0.0f;
     nds_physics_body* body;
+    nds_physics_body* switch_body;
+    nds_part_properties switch_props;
     int frame;
 
     CHECK(root != NULL);
@@ -44,57 +46,58 @@ int main(void)
     box = make_part(root, "Box", (nds_vec3){0,4,0}, (nds_vec3){1,1,1}, 0);
     far_box = make_part(root, "FarBox", (nds_vec3){100,4,100}, (nds_vec3){1,1,1}, 0);
     wall = make_part(root, "Wall", (nds_vec3){0,2,-4}, (nds_vec3){6,4,1}, 1);
-    CHECK(floor != NULL && box != NULL && far_box != NULL && wall != NULL);
-    CHECK(nds_physics_init(&world, 4) == NDS_OK);
+    switch_box = make_part(root, "SwitchBox", (nds_vec3){2,8,2}, (nds_vec3){1,1,1}, 1);
+    CHECK(floor != NULL && box != NULL && far_box != NULL && wall != NULL && switch_box != NULL);
+    CHECK(nds_physics_init(&world, 5) == NDS_OK);
     CHECK(nds_physics_add_scene(&world, root) == NDS_OK);
-    CHECK(world.count == 4);
+    CHECK(world.count == 5);
     body = nds_physics_find_body(&world, box);
+    switch_body = nds_physics_find_body(&world, switch_box);
     CHECK(body != NULL && body->dynamic);
+    CHECK(switch_body != NULL && !switch_body->dynamic);
 
-    /* A forward ray should hit the wall at its front face and report a normal
-     * pointing back toward the ray origin. */
     CHECK(nds_physics_raycast(&world, (nds_vec3){0,2,0}, (nds_vec3){0,0,-1}, 20.0f,
                               &hit, &distance, &normal) == NDS_OK);
     CHECK(hit == wall);
     CHECK(fabsf(distance - 3.5f) < 0.001f);
     CHECK(fabsf(normal.z - 1.0f) < 0.001f);
 
-    /* Rays are normalized internally, so a direction of length two has the
-     * same hit distance. */
     hit = NULL;
     CHECK(nds_physics_raycast(&world, (nds_vec3){0,2,0}, (nds_vec3){0,0,-2}, 20.0f,
                               &hit, &distance, &normal) == NDS_OK);
     CHECK(hit == wall);
     CHECK(fabsf(distance - 3.5f) < 0.001f);
 
-    /* A short ray must miss without producing a stale hit result. */
     hit = wall;
     CHECK(nds_physics_raycast(&world, (nds_vec3){0,2,0}, (nds_vec3){0,0,-1}, 3.0f,
                               &hit, &distance, &normal) == NDS_OK);
     CHECK(hit == NULL);
     CHECK(fabsf(distance - 3.0f) < 0.001f);
 
-    /* Simulate roughly one second at a time step that the engine actually
-     * accepts. The body's bottom should settle on the floor near y=0.5. */
     for (frame = 0; frame < 60; ++frame)
         CHECK(nds_physics_update(&world, 1.0f / 60.0f) == NDS_OK);
     CHECK(nds_part_get_position(box, &pos) == NDS_OK);
     CHECK(pos.y > 0.0f && pos.y < 2.0f);
     CHECK(body->grounded);
     CHECK(nds_part_get_position(far_box, &pos) == NDS_OK);
-    /* FarBox is intentionally outside the floor's X/Z bounds, so it should
-     * fall rather than being kept above the floor by a false collision. */
     CHECK(pos.y < 0.0f);
+    CHECK(nds_part_get_position(switch_box, &pos) == NDS_OK);
+    CHECK(fabsf(pos.y - 8.0f) < 0.001f);
 
-    /* A vertical impulse must leave the contact cleanly. */
+    CHECK(nds_part_get_properties(switch_box, &switch_props) == NDS_OK);
+    switch_props.anchored = 0;
+    CHECK(nds_part_set_properties(switch_box, &switch_props) == NDS_OK);
+    CHECK(!switch_body->dynamic);
+    CHECK(nds_physics_update(&world, .05f) == NDS_OK);
+    CHECK(switch_body->dynamic);
+    CHECK(nds_part_get_position(switch_box, &pos) == NDS_OK);
+    CHECK(pos.y < 8.0f);
+
     CHECK(nds_physics_apply_impulse(&world, box, (nds_vec3){0,10,0}) == NDS_OK);
     CHECK(body->velocity.y > 0.0f);
     CHECK(nds_physics_update(&world, .05f) == NDS_OK);
     CHECK(body->velocity.y < 10.0f);
 
-    /* Friction should damp horizontal motion while the body is supported.
-     * Place the box slightly into the floor so the discrete collision solver
-     * has an overlap to resolve during this frame. */
     body->velocity.x = 8.0f;
     body->velocity.y = 0.0f;
     body->velocity.z = 0.0f;
