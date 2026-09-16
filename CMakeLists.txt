@@ -10,13 +10,13 @@ option(NDS_ENABLE_ASAN "Enable MSVC AddressSanitizer" OFF)
 set(ENGINE_CORE_SOURCES
     engine/src/core/log.c engine/src/core/config.c engine/src/core/clock.c engine/src/core/memstat.c engine/src/core/app.c
     engine/src/game/player.c engine/src/game/round.c engine/src/game/disaster.c engine/src/game/disaster_system.c engine/src/game/physics.c engine/src/game/stats.c engine/src/game/save.c
-    engine/src/scene/instance.c engine/src/scene/instance_child_alias.c engine/src/scene/part.c engine/src/content/map_loader.c engine/src/content/map_catalog.c
+    engine/src/scene/instance.c engine/src/scene/instance_child_alias.c engine/src/scene/part.c engine/src/content/map_loader.c engine/src/content/rbxlx_loader.c engine/src/content/map_catalog.c
     engine/src/render/draw.c engine/src/render/math.c engine/src/render/frustum.c engine/src/render/camera.c engine/src/render/mesh.c engine/src/render/mesh_cache.c
     engine/src/render/texture.c engine/src/render/texture_cache.c engine/src/render/renderer.c engine/src/render/gles2.c)
 if(WIN32)
     list(APPEND ENGINE_CORE_SOURCES engine/src/render/gles2_backend.c)
     set(ENGINE_PLATFORM_SOURCES engine/src/platform/windows/platform_windows.c)
-    set(ENGINE_PLATFORM_LIBS user32 gdi32 opengl32)
+    set(ENGINE_PLATFORM_LIBS user32 gdi32 opengl32 comdlg32)
     set(ENGINE_PLATFORM_ENTRY_POINT platform/windows/main.c)
 else()
     message(FATAL_ERROR "No platform backend implemented for this target yet - Windows is currently the only supported build. See TODO.md Phase 0/1.")
