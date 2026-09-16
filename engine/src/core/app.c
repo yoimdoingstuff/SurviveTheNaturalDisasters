@@ -16,6 +16,7 @@
 #include "engine/game/round.h"
 #include "engine/game/disaster_system.h"
 #include "engine/game/physics.h"
+#include <math.h>
 #include <stdio.h>
 #include <string.h>
 
@@ -81,6 +82,32 @@ static nds_result load_startup_scene(const char* map_path,nds_mesh_cache* mesh_c
     return create_demo_scene(out_root);
 }
 
+/* Keep the third-person camera outside collidable geometry. The player avatar
+ * itself is non-collidable, so the ray can start at the player's camera target
+ * without immediately hitting the character. */
+static void constrain_third_person_camera(nds_camera* camera, const nds_player_controller* player,
+                                          const nds_physics_world* physics)
+{
+    nds_vec3 origin, desired, direction, normal;
+    nds_instance* hit = NULL;
+    float dx, dy, dz, distance, hit_distance;
+    const float camera_padding = 0.35f;
+    if (!camera || !player || !physics || !player->third_person) return;
+    origin = (nds_vec3){camera->target[0], camera->target[1], camera->target[2]};
+    desired = (nds_vec3){camera->position[0], camera->position[1], camera->position[2]};
+    dx = desired.x - origin.x; dy = desired.y - origin.y; dz = desired.z - origin.z;
+    distance = sqrtf(dx*dx + dy*dy + dz*dz);
+    if (distance <= 0.001f) return;
+    direction = (nds_vec3){dx / distance, dy / distance, dz / distance};
+    if (nds_physics_raycast(physics, origin, direction, distance, &hit, &hit_distance, &normal) != NDS_OK || !hit) return;
+    hit_distance -= camera_padding;
+    if (hit_distance < 0.5f) hit_distance = 0.5f;
+    if (hit_distance > distance) hit_distance = distance;
+    camera->position[0] = origin.x + direction.x * hit_distance;
+    camera->position[1] = origin.y + direction.y * hit_distance;
+    camera->position[2] = origin.z + direction.z * hit_distance;
+}
+
 nds_result nds_app_run(const nds_app_options* options)
 {
     nds_result rc; nds_config* cfg; platform_window_desc win_desc; nds_instance* scene=NULL; nds_draw_list draw_list; nds_gles2_renderer* renderer=NULL; nds_mesh_cache* mesh_cache=NULL; nds_texture_cache* texture_cache=NULL; nds_camera camera; nds_player_controller player; nds_round round; nds_disaster_system disasters; nds_physics_world physics; int render_width=0,render_height=0; nds_clock clock; unsigned long frames_run=0; const int smoke_frames=options?options->smoke_test_frames:0; const int smoke_mode=smoke_frames>0; int elimination_logged=0; int camera_toggle_previous=0; int camera_drag_previous=0; int previous_mouse_x=0; int previous_mouse_y=0;
@@ -96,7 +123,7 @@ nds_result nds_app_run(const nds_app_options* options)
     }
     if(rc!=NDS_OK)goto cleanup_texture;
     rc=nds_physics_add_scene(&physics,scene);if(rc!=NDS_OK)goto cleanup_scene;
-    nds_player_init(&player,scene);nds_player_attach_visual(&player,scene);nds_player_update_visual(&player,scene);nds_player_apply_camera(&player,&camera);
+    nds_player_init(&player,scene);nds_player_attach_visual(&player,scene);nds_player_update_visual(&player,scene);nds_player_apply_camera(&player,&camera);constrain_third_person_camera(&camera,&player,&physics);
     if(!smoke_mode){nds_gles2_desc render_desc={win_desc.width,win_desc.height,camera.fov_y_degrees,camera.near_plane,camera.far_plane};rc=nds_gles2_renderer_create(&renderer,&render_desc);if(rc!=NDS_OK)goto cleanup_scene;render_width=win_desc.width;render_height=win_desc.height;NDS_LOGI(TAG,"OpenGL rendering backend active; WASD moves, SPACE jumps, RMB drag or LEFT/RIGHT arrows rotate camera, C toggles first/third person");}else NDS_LOGI(TAG,"smoke test mode: rendering disabled; exercising engine/game systems only");
     nds_clock_init(&clock);nds_perf_reset();
     while(!platform_quit_requested()){
@@ -108,12 +135,12 @@ nds_result nds_app_run(const nds_app_options* options)
             NDS_LOGI(TAG,"round %u: %s (%s)",round.round_number,nds_round_state_name(round.state),nds_disaster_type_name(round.disaster));
             if(round.state==NDS_ROUND_PLAYING){
                 size_t map_index=nds_map_catalog_select(round.round_number);const char* map_path=options->map_path&&options->map_path[0]?options->map_path:nds_map_catalog_path(map_index);const char* map_name=options->map_path&&options->map_path[0]?"Custom Map":nds_map_catalog_name(map_index);
-                if(map_path){nds_instance* next_scene=NULL;nds_result map_rc=load_startup_scene(map_path,mesh_cache,texture_cache,&next_scene);if(map_rc==NDS_OK&&next_scene){nds_instance_destroy(scene);scene=next_scene;nds_physics_clear(&physics);if(nds_physics_add_scene(&physics,scene)!=NDS_OK)NDS_LOGW(TAG,"round %u physics scene registration failed",round.round_number);nds_player_init(&player,scene);nds_player_attach_visual(&player,scene);nds_player_update_visual(&player,scene);nds_player_apply_camera(&player,&camera);NDS_LOGI(TAG,"round %u map: %s (%s)",round.round_number,map_name?map_name:"Unnamed",map_path);}else NDS_LOGW(TAG,"round %u map selection failed: %s",round.round_number,map_path);}elimination_logged=0;nds_disaster_system_start(&disasters,round.disaster);
+                if(map_path){nds_instance* next_scene=NULL;nds_result map_rc=load_startup_scene(map_path,mesh_cache,texture_cache,&next_scene);if(map_rc==NDS_OK&&next_scene){nds_instance_destroy(scene);scene=next_scene;nds_physics_clear(&physics);if(nds_physics_add_scene(&physics,scene)!=NDS_OK)NDS_LOGW(TAG,"round %u physics scene registration failed",round.round_number);nds_player_init(&player,scene);nds_player_attach_visual(&player,scene);nds_player_update_visual(&player,scene);nds_player_apply_camera(&player,&camera);constrain_third_person_camera(&camera,&player,&physics);NDS_LOGI(TAG,"round %u map: %s (%s)",round.round_number,map_name?map_name:"Unnamed",map_path);}else NDS_LOGW(TAG,"round %u map selection failed: %s",round.round_number,map_path);}elimination_logged=0;nds_disaster_system_start(&disasters,round.disaster);
             }else if(round.state==NDS_ROUND_RESULTS){nds_disaster_system_stop(&disasters,scene);if(!round.player_survived)round.player_survived=player.alive;NDS_LOGI(TAG,"round %u result: %s",round.round_number,round.player_survived?"SURVIVED":"ELIMINATED");}
-            else if(round.state==NDS_ROUND_INTERMISSION&&previous_round_state==NDS_ROUND_RESULTS){nds_player_init(&player,scene);nds_player_attach_visual(&player,scene);nds_player_update_visual(&player,scene);nds_player_apply_camera(&player,&camera);}
+            else if(round.state==NDS_ROUND_INTERMISSION&&previous_round_state==NDS_ROUND_RESULTS){nds_player_init(&player,scene);nds_player_attach_visual(&player,scene);nds_player_update_visual(&player,scene);nds_player_apply_camera(&player,&camera);constrain_third_person_camera(&camera,&player,&physics);}
         }
         if(round.state==NDS_ROUND_PLAYING&&player.alive){nds_disaster_system_update(&disasters,&player,scene,(float)dt);if(nds_physics_update(&physics,(float)dt)!=NDS_OK)NDS_LOGW(TAG,"physics update failed");nds_player_update(&player,scene,(float)dt,platform_is_key_down(PLATFORM_KEY_W),platform_is_key_down(PLATFORM_KEY_S),platform_is_key_down(PLATFORM_KEY_A),platform_is_key_down(PLATFORM_KEY_D),platform_is_key_down(PLATFORM_KEY_SPACE));nds_player_update_visual(&player,scene);if(!player.alive&&!elimination_logged){NDS_LOGW(TAG,"round %u: player eliminated",round.round_number);elimination_logged=1;nds_round_finish(&round,0);nds_disaster_system_stop(&disasters,scene);NDS_LOGI(TAG,"round %u: entering results early after elimination",round.round_number);}}
-        nds_player_apply_camera(&player,&camera);
+        nds_player_apply_camera(&player,&camera);constrain_third_person_camera(&camera,&player,&physics);
         if(!smoke_mode){int window_width=0,window_height=0;platform_get_window_size(&window_width,&window_height);if(window_width>0&&window_height>0&&(window_width!=render_width||window_height!=render_height)){if(nds_gles2_renderer_resize(renderer,window_width,window_height)==NDS_OK){render_width=window_width;render_height=window_height;}else{NDS_LOGE(TAG,"renderer resize failed (%dx%d)",window_width,window_height);platform_request_quit();}}nds_draw_list_reset(&draw_list);rc=nds_draw_list_build_from_tree(&draw_list,scene);if(rc==NDS_OK)rc=nds_gles2_renderer_begin(renderer);if(rc==NDS_OK)rc=nds_gles2_renderer_draw_parts(renderer,&draw_list,&camera);if(rc==NDS_OK){nds_hud_state hud={&player,&round,&disasters};rc=nds_gles2_renderer_draw_hud(renderer,&hud);}if(rc==NDS_OK)rc=nds_gles2_renderer_end(renderer);if(rc!=NDS_OK){NDS_LOGE(TAG,"render failed (%d)",(int)rc);platform_request_quit();}}
         nds_perf_end_frame();frames_run++;if(smoke_frames>0&&(int)frames_run>=smoke_frames){NDS_LOGI(TAG,"smoke test target reached (%lu frames), requesting quit",frames_run);platform_request_quit();}if(frames_run%300==0){nds_perf_stats perf;nds_perf_get_stats(&perf);nds_mem_stats mem;nds_mem_get_stats(&mem);NDS_LOGI(TAG,"frame %lu: avg %.2fms (min %.2f / max %.2f) mem %zu bytes (peak %zu, %zu allocs / %zu frees)",frames_run,perf.avg_frame_ms,perf.min_frame_ms,perf.max_frame_ms,mem.current_bytes,mem.peak_bytes,mem.total_allocations,mem.total_frees);}
     }
