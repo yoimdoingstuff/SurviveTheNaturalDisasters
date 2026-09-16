@@ -1,9 +1,0 @@
-Traceback (most recent call last):
-  File "<stdin>", line 3, in <module>
-  File "<frozen importlib._bootstrap_external>", line 995, in exec_module
-  File "<frozen importlib._bootstrap>", line 488, in _call_with_frames_removed
-  File "/home/runner/work/SurviveTheNaturalDisasters/SurviveTheNaturalDisasters/tools/apply_ui_world_patch.py", line 97, in <module>
-    patch_app()
-  File "/home/runner/work/SurviveTheNaturalDisasters/SurviveTheNaturalDisasters/tools/apply_ui_world_patch.py", line 42, in patch_app
-    raise RuntimeError("app menu input block not found")
-RuntimeError: app menu input block not found
