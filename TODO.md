@@ -170,7 +170,7 @@ Legend:
 - [ ] Sky/lighting environment
 - [ ] Basic post-processing only where legacy hardware allows
 - [ ] Loading screens
-- [ ] In-game HUD rendering
+- [~] In-game HUD rendering
 - [ ] Debug overlay
 - [ ] Pause/options UI
 
@@ -187,6 +187,7 @@ Legend:
 - [ ] One complete playable map
 - [~] Multiple disaster prototypes
 - [~] Offline single-player round using the same simulation interfaces intended for multiplayer
+- [~] Disaster warning phase
 - [ ] Validate complete end-to-end round
 
 ## Phase 10 - Base game systems
