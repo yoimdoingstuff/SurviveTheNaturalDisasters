@@ -35,6 +35,12 @@ int main(void)
     nds_disaster_system_init(&system);
     assert(system.active == 0);
     assert(fabsf(system.warning_duration - 3.0f) < 0.001f);
+    assert(system.environment.wind_intensity == 0.0f);
+    assert(system.environment.shake_intensity == 0.0f);
+    assert(system.environment.debris_intensity == 0.0f);
+    assert(system.environment.water_intensity == 0.0f);
+    assert(system.environment.fire_intensity == 0.0f);
+    assert(system.environment.sky_darkness == 0.0f);
 
     settings.warning_duration = 1.5f;
     settings.earthquake_pulse_interval = 2.0f;
@@ -63,20 +69,27 @@ int main(void)
     assert(system.earthquake.active == 0);
     assert(nds_disaster_is_warning(&system));
     assert(fabsf(nds_disaster_warning_remaining(&system) - 1.5f) < 0.001f);
+    assert(system.environment.sky_darkness > 0.0f);
 
     nds_disaster_system_update(&system, &player, scene, 1.0f);
     assert(nds_disaster_is_warning(&system));
     assert(fabsf(nds_disaster_warning_remaining(&system) - 0.5f) < 0.001f);
     assert(system.earthquake.elapsed == 0.0f);
+    assert(system.environment.sky_darkness > 0.0f);
 
     nds_disaster_system_update(&system, &player, scene, 1.0f);
     assert(!nds_disaster_is_warning(&system));
     assert(system.earthquake.active == 1);
     assert(fabsf(system.earthquake.elapsed - 0.5f) < 0.001f);
+    assert(system.environment.shake_intensity > 0.0f);
+    assert(system.environment.sky_darkness > 0.0f);
 
     nds_disaster_system_stop(&system, scene);
     assert(system.active == 0);
     assert(system.earthquake.active == 0);
+    assert(system.environment.shake_intensity == 0.0f);
+    assert(system.environment.debris_intensity == 0.0f);
+    assert(system.environment.sky_darkness == 0.0f);
 
     assert(nds_part_get_position(part, &before) == NDS_OK);
     nds_disaster_system_start(&system, NDS_DISASTER_WINDSTORM);
@@ -100,10 +113,16 @@ int main(void)
         assert(nds_part_get_properties(part, &props) == NDS_OK);
         assert(fabsf(props.rotation.x) + fabsf(props.rotation.y) + fabsf(props.rotation.z) > 0.0f);
     }
+    assert(system.environment.wind_intensity > 0.0f);
+    assert(system.environment.debris_intensity > 0.0f);
+    assert(system.environment.sky_darkness > 0.0f);
 
     nds_disaster_system_stop(&system, scene);
     assert(system.active == 0);
     assert(system.windstorm.active == 0);
+    assert(system.environment.wind_intensity == 0.0f);
+    assert(system.environment.debris_intensity == 0.0f);
+    assert(system.environment.sky_darkness == 0.0f);
 
     nds_instance_destroy(scene);
     return 0;
