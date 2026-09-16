@@ -179,7 +179,20 @@ nds_result nds_physics_raycast(const nds_physics_world* world, nds_vec3 origin,
 
 static void integrate_body(nds_physics_world* w,nds_physics_body* b,float dt)
 {
-    nds_part_properties p;if(!b->dynamic||nds_part_get_properties(b->instance,&p)!=NDS_OK)return;
+    nds_part_properties p;
+    uint8_t was_dynamic;
+    if(nds_part_get_properties(b->instance,&p)!=NDS_OK)return;
+
+    was_dynamic=b->dynamic;
+    b->dynamic=(uint8_t)!p.anchored;
+    if(!b->dynamic){
+        b->velocity=(nds_vec3){0,0,0};
+        b->accumulated_force=(nds_vec3){0,0,0};
+        b->grounded=0;
+        return;
+    }
+    if(!was_dynamic)b->grounded=0;
+
     b->velocity=addv(b->velocity,mulv(w->gravity,dt));
     b->velocity=addv(b->velocity,mulv(b->accumulated_force,dt/b->mass));
     b->accumulated_force=(nds_vec3){0,0,0};
