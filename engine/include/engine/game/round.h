@@ -28,6 +28,8 @@ typedef struct nds_round {
 void nds_round_init(nds_round* round);
 void nds_round_update(nds_round* round, float delta_seconds);
 float nds_round_time_remaining(const nds_round* round);
+float nds_round_phase_progress(const nds_round* round);
+int nds_round_is_countdown(const nds_round* round);
 const char* nds_round_state_name(nds_round_state state);
 const char* nds_disaster_type_name(nds_disaster_type disaster);
 
