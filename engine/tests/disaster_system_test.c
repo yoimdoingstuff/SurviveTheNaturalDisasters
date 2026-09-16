@@ -11,6 +11,7 @@ static nds_instance* make_unanchored_part(nds_instance* scene)
     assert(part != NULL);
     props.position = (nds_vec3){0.0f, 3.0f, 0.0f};
     props.size = (nds_vec3){1.0f, 1.0f, 1.0f};
+    props.rotation = (nds_vec3){0.0f, 0.0f, 0.0f};
     props.anchored = 0;
     props.can_collide = 1;
     props.visible = 1;
@@ -71,6 +72,11 @@ int main(void)
     assert(system.windstorm.elapsed > 0.49f);
     assert(nds_part_get_position(part, &after) == NDS_OK);
     assert(fabsf(after.x - before.x) + fabsf(after.z - before.z) > 0.0f);
+    {
+        nds_part_properties props;
+        assert(nds_part_get_properties(part, &props) == NDS_OK);
+        assert(fabsf(props.rotation.x) + fabsf(props.rotation.y) + fabsf(props.rotation.z) > 0.0f);
+    }
 
     nds_disaster_system_stop(&system, scene);
     assert(system.active == 0);
