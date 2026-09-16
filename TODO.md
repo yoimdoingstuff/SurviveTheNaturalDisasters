@@ -186,7 +186,7 @@ Legend:
 - [ ] Loading screens
 - [x] In-game HUD rendering
 - [ ] Debug overlay
-- [ ] Pause/options UI
+- [~] Pause/options UI
 
 ## Phase 9 - NDS gameplay prototype
 - [x] Implement round state machine
@@ -207,7 +207,7 @@ Legend:
 ## Phase 10 - Base game systems
 - [x] Multiple NDS development maps
 - [~] Multiple disaster types
-- [ ] Disaster configuration/settings
+- [x] Disaster configuration/settings
 - [x] Round timing configuration API <!-- runtime phase durations can now be changed safely -->
 - [x] Spawn selection
 - [x] Player elimination/survival logic
@@ -215,24 +215,24 @@ Legend:
 - [~] Results screen <!-- result state, outcome helper, and HUD result data exist; dedicated presentation remains -->
 - [x] Base HUD
 - [ ] Audio integration
-- [ ] Save/config support
-- [ ] Local settings persistence
-- [ ] Basic statistics needed by the base game
+- [x] Save/config support
+- [x] Local settings persistence
+- [x] Basic statistics needed by the base game
 - [~] Complete recognizable NDS gameplay loop
 
 ## Phase 11 - Menu and local lobby
-- [ ] Main menu
-- [ ] Offline play entry
+- [~] Main menu
+- [x] Offline play entry
 - [ ] Local lobby creation
 - [ ] Local lobby joining
 - [ ] Lobby browser/discovery
 - [ ] Player list
-- [ ] Server/lobby settings
-- [ ] Map/disaster settings UI
+- [~] Server/lobby settings
+- [~] Map/disaster settings UI
 - [ ] Loading screen flow
-- [ ] Pause/options screen
+- [~] Pause/options screen
 - [ ] Lobby lifecycle/state machine
-- [ ] Single-player lobby path
+- [x] Single-player lobby path
 - [ ] Make menu and local lobby part of the base release
 - [ ] Do not begin post-release cosmetic/progression work until this phase is complete
 
