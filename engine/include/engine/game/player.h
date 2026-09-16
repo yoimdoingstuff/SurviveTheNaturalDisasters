@@ -23,9 +23,13 @@ typedef struct nds_player_controller {
     float camera_distance;
     float facing_yaw;
     float animation_time;
+    float launch_land_timer;
     uint8_t grounded;
     uint8_t alive;
     uint8_t third_person;
+    uint8_t launch_land_services;
+    uint8_t launch_land_bridge_open;
+    uint8_t launch_land_rocket_active;
 } nds_player_controller;
 
 void nds_player_init(nds_player_controller* player, const nds_instance* scene);
