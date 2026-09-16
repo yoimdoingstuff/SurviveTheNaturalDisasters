@@ -2,80 +2,12 @@
   "format": "nds-map",
   "version": 1,
   "instances": [
-    {
-      "id": 200,
-      "referent": null,
-      "class": "DataModel",
-      "name": "IslandRuins",
-      "parent": null,
-      "properties": {},
-      "children": [201, 202, 203, 204, 205, 206]
-    },
-    {
-      "id": 201,
-      "referent": null,
-      "class": "Part",
-      "name": "Island",
-      "parent": 200,
-      "properties": {},
-      "children": [],
-      "transform": {"position": [0, -1, 0], "size": [20, 1, 14], "rotation": [0, 0, 0]},
-      "part": {"transparency": 0, "reflectance": 0, "anchored": true, "can_collide": true, "color": [0.25, 0.48, 0.38]}
-    },
-    {
-      "id": 202,
-      "referent": null,
-      "class": "Part",
-      "name": "RuinedTower",
-      "parent": 200,
-      "properties": {},
-      "children": [],
-      "transform": {"position": [-5, 2, -2], "size": [3, 6, 3], "rotation": [0, 10, 0]},
-      "part": {"transparency": 0, "reflectance": 0, "anchored": true, "can_collide": true, "color": [0.48, 0.45, 0.40]}
-    },
-    {
-      "id": 203,
-      "referent": null,
-      "class": "Part",
-      "name": "RuinedWall",
-      "parent": 200,
-      "properties": {},
-      "children": [],
-      "transform": {"position": [3, 1.25, 3], "size": [7, 2.5, 1], "rotation": [0, -15, 0]},
-      "part": {"transparency": 0, "reflectance": 0, "anchored": true, "can_collide": true, "color": [0.58, 0.54, 0.46]}
-    },
-    {
-      "id": 204,
-      "referent": null,
-      "class": "Part",
-      "name": "BrokenBlock",
-      "parent": 200,
-      "properties": {},
-      "children": [],
-      "transform": {"position": [4, 0.75, -3], "size": [3, 1.5, 3], "rotation": [8, 20, -5]},
-      "part": {"transparency": 0, "reflectance": 0, "anchored": true, "can_collide": true, "color": [0.70, 0.58, 0.38]}
-    },
-    {
-      "id": 205,
-      "referent": null,
-      "class": "Part",
-      "name": "Shelter",
-      "parent": 200,
-      "properties": {},
-      "children": [],
-      "transform": {"position": [-1, 1.5, 4], "size": [4, 3, 2], "rotation": [0, 25, 0]},
-      "part": {"transparency": 0, "reflectance": 0, "anchored": true, "can_collide": true, "color": [0.35, 0.40, 0.50]}
-    },
-    {
-      "id": 206,
-      "referent": null,
-      "class": "Part",
-      "name": "CenterPillar",
-      "parent": 200,
-      "properties": {},
-      "children": [],
-      "transform": {"position": [0, 2, 0], "size": [2, 4, 2], "rotation": [0, 0, 0]},
-      "part": {"transparency": 0, "reflectance": 0, "anchored": true, "can_collide": true, "color": [0.65, 0.42, 0.32]}
-    }
+    {"id": 0, "referent": null, "class": "DataModel", "name": "IslandRuins", "parent": null, "properties": {}, "children": [1, 2, 3, 4, 5, 6]},
+    {"id": 1, "referent": null, "class": "Part", "name": "Island", "parent": 0, "properties": {}, "children": [], "transform": {"position": [0, -1, 0], "size": [20, 1, 14], "rotation": [0, 0, 0]}, "part": {"transparency": 0, "reflectance": 0, "anchored": true, "can_collide": true, "color": [0.25, 0.48, 0.38]}},
+    {"id": 2, "referent": null, "class": "Part", "name": "RuinedTower", "parent": 0, "properties": {}, "children": [], "transform": {"position": [-5, 2, -2], "size": [3, 6, 3], "rotation": [0, 10, 0]}, "part": {"transparency": 0, "reflectance": 0, "anchored": true, "can_collide": true, "color": [0.48, 0.45, 0.40]}},
+    {"id": 3, "referent": null, "class": "Part", "name": "RuinedWall", "parent": 0, "properties": {}, "children": [], "transform": {"position": [3, 1.25, 3], "size": [7, 2.5, 1], "rotation": [0, -15, 0]}, "part": {"transparency": 0, "reflectance": 0, "anchored": true, "can_collide": true, "color": [0.58, 0.54, 0.46]}},
+    {"id": 4, "referent": null, "class": "Part", "name": "BrokenBlock", "parent": 0, "properties": {}, "children": [], "transform": {"position": [4, 0.75, -3], "size": [3, 1.5, 3], "rotation": [8, 20, -5]}, "part": {"transparency": 0, "reflectance": 0, "anchored": true, "can_collide": true, "color": [0.70, 0.58, 0.38]}},
+    {"id": 5, "referent": null, "class": "Part", "name": "Shelter", "parent": 0, "properties": {}, "children": [], "transform": {"position": [-1, 1.5, 4], "size": [4, 3, 2], "rotation": [0, 25, 0]}, "part": {"transparency": 0, "reflectance": 0, "anchored": true, "can_collide": true, "color": [0.35, 0.40, 0.50]}},
+    {"id": 6, "referent": null, "class": "Part", "name": "CenterPillar", "parent": 0, "properties": {}, "children": [], "transform": {"position": [0, 2, 0], "size": [2, 4, 2], "rotation": [0, 0, 0]}, "part": {"transparency": 0, "reflectance": 0, "anchored": true, "can_collide": true, "color": [0.65, 0.42, 0.32]}}
   ]
 }
