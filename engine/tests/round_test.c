@@ -14,6 +14,7 @@ int main(void)
     assert(round.disaster == NDS_DISASTER_EARTHQUAKE);
     assert(strcmp(nds_round_state_name(round.state), "Intermission") == 0);
     assert(strcmp(nds_disaster_type_name(round.disaster), "Earthquake") == 0);
+    assert(strcmp(nds_round_result_name(&round), "Pending") == 0);
     assert(fabsf(nds_round_time_remaining(&round) - 5.0f) < 0.001f);
     assert(fabsf(nds_round_phase_progress(&round)) < 0.001f);
     assert(nds_round_is_countdown(&round));
@@ -35,6 +36,7 @@ int main(void)
     assert(round.state == NDS_ROUND_PLAYING);
     assert(round.round_number == 1);
     assert(round.disaster == NDS_DISASTER_EARTHQUAKE);
+    assert(strcmp(nds_round_result_name(&round), "Pending") == 0);
     assert(fabsf(nds_round_time_remaining(&round) - 12.0f) < 0.001f);
     assert(fabsf(nds_round_phase_progress(&round)) < 0.001f);
     assert(!nds_round_is_countdown(&round));
@@ -46,6 +48,7 @@ int main(void)
     nds_round_finish(&round, 0);
     assert(round.state == NDS_ROUND_RESULTS);
     assert(round.player_survived == 0);
+    assert(strcmp(nds_round_result_name(&round), "Eliminated") == 0);
     assert(fabsf(nds_round_time_remaining(&round) - 2.0f) < 0.001f);
     assert(fabsf(nds_round_phase_progress(&round)) < 0.001f);
     assert(nds_round_is_countdown(&round));
@@ -54,9 +57,11 @@ int main(void)
     nds_round_finish(&round, 1);
     assert(round.state == NDS_ROUND_RESULTS);
     assert(round.player_survived == 0);
+    assert(strcmp(nds_round_result_name(&round), "Eliminated") == 0);
 
     nds_round_update(&round, 2.0f);
     assert(round.state == NDS_ROUND_INTERMISSION);
+    assert(strcmp(nds_round_result_name(&round), "Pending") == 0);
 
     /* A long frame/time jump must carry its unused time into the next state. */
     nds_round_update(&round, 5.5f);
@@ -65,5 +70,11 @@ int main(void)
     assert(round.disaster == NDS_DISASTER_WINDSTORM);
     assert(fabsf(nds_round_time_remaining(&round) - 9.5f) < 0.001f);
     assert(strcmp(nds_disaster_type_name(round.disaster), "Windstorm") == 0);
+
+    /* A surviving player gets the same presentation path with the positive outcome. */
+    nds_round_finish(&round, 1);
+    assert(round.state == NDS_ROUND_RESULTS);
+    assert(round.player_survived == 1);
+    assert(strcmp(nds_round_result_name(&round), "Survived") == 0);
     return 0;
 }
