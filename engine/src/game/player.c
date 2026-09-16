@@ -48,6 +48,22 @@ static void collide(nds_player_controller* pl,const nds_instance* root,int axis,
     }
 }
 
+static float move_toward(float current,float target,float max_delta)
+{
+    float delta=target-current;
+    if(delta>max_delta)return current+max_delta;
+    if(delta<-max_delta)return current-max_delta;
+    return target;
+}
+
+static float approach_angle(float current,float target,float max_delta)
+{
+    float delta=fmodf(target-current+180.0f,360.0f)-180.0f;
+    if(delta>max_delta)delta=max_delta;
+    else if(delta<-max_delta)delta=-max_delta;
+    return current+delta;
+}
+
 void nds_player_init(nds_player_controller* p,const nds_instance* scene)
 {
     size_t i;
@@ -66,13 +82,31 @@ void nds_player_damage(nds_player_controller* p, float amount)
 
 void nds_player_update(nds_player_controller* p,const nds_instance* scene,float dt,int f,int b,int l,int r,int jump)
 {
-    float local_x,local_forward,len,ox,oy,oz,yaw,s,c,world_x,world_z;
+    float local_x,local_forward,len,ox,oy,oz,yaw,s,c,target_x,target_z,target_facing;
+    const float acceleration=52.0f;
+    const float deceleration=68.0f;
+    const float facing_turn_speed=1080.0f;
     if(!p||!scene||!p->alive)return;if(dt<0)dt=0;if(dt>.05f)dt=.05f;
-    local_x=(float)(r-l);local_forward=(float)(f-b);len=sqrtf(local_x*local_x+local_forward*local_forward);if(len>0){local_x/=len;local_forward/=len;}
+    local_x=(float)(r-l);local_forward=(float)(f-b);len=sqrtf(local_x*local_x+local_forward*local_forward);
+    if(len>0.001f){local_x/=len;local_forward/=len;}
+    else {local_x=0.0f;local_forward=0.0f;}
+
+    /* Convert input from camera space into world space. Input is normalized
+       before this transform, so diagonal movement never gets a speed boost. */
     yaw=rad(p->camera_yaw);s=sinf(yaw);c=cosf(yaw);
-    world_x=local_forward*(-s)+local_x*c;world_z=local_forward*(-c)+local_x*(-s);
-    p->velocity.x=world_x*p->move_speed;p->velocity.z=world_z*p->move_speed;
-    if(len>0.001f){p->facing_yaw=deg(atan2f(world_x,-world_z));p->animation_time+=dt*(p->grounded?9.0f:4.0f);}else p->animation_time+=dt*2.0f;
+    target_x=local_forward*(-s)+local_x*c;
+    target_z=local_forward*(-c)+local_x*(-s);
+    if(len>0.001f){
+        p->velocity.x=move_toward(p->velocity.x,target_x*p->move_speed,acceleration*dt);
+        p->velocity.z=move_toward(p->velocity.z,target_z*p->move_speed,acceleration*dt);
+        target_facing=deg(atan2f(target_x,-target_z));
+        p->facing_yaw=approach_angle(p->facing_yaw,target_facing,facing_turn_speed*dt);
+        p->animation_time+=dt*(p->grounded?9.0f:4.0f);
+    }else{
+        p->velocity.x=move_toward(p->velocity.x,0.0f,deceleration*dt);
+        p->velocity.z=move_toward(p->velocity.z,0.0f,deceleration*dt);
+        p->animation_time+=dt*2.0f;
+    }
     if(jump&&p->grounded){p->velocity.y=p->jump_speed;p->grounded=0;}p->velocity.y-=p->gravity*dt;
     ox=p->position.x;oy=p->position.y;oz=p->position.z;p->grounded=0;
     p->position.x+=p->velocity.x*dt;collide(p,scene,0,ox,p->half_width);
@@ -164,11 +198,6 @@ void nds_player_update_visual(const nds_player_controller* p, nds_instance* scen
     fz=-cosf(rad(yaw));
     body_pos=(nds_vec3){p->position.x,p->position.y+bob,p->position.z};
     head_pos=(nds_vec3){p->position.x,p->position.y+1.0f+bob,p->position.z};
-
-    /* Limbs are separate R6-style pieces. Keep their shoulder/hip heights
-       fixed and swing them forward/back around their local X axis. Moving the
-       centres vertically made the old animation look like the limbs were
-       folding inward rather than walking. */
     {
         float arm_swing=0.5f*sinf(rad(swing));
         float leg_swing=0.5f*sinf(rad(-swing));
