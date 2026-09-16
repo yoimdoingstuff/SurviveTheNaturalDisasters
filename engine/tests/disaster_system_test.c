@@ -36,9 +36,18 @@ int main(void)
     nds_disaster_system_start(&system, NDS_DISASTER_EARTHQUAKE);
     assert(system.active == 1);
     assert(system.active_type == NDS_DISASTER_EARTHQUAKE);
-    assert(system.earthquake.active == 1);
+    assert(system.earthquake.active == 0);
+    assert(nds_disaster_is_warning(&system));
+    assert(fabsf(nds_disaster_warning_remaining(&system) - 3.0f) < 0.001f);
 
     nds_disaster_system_update(&system, &player, scene, 1.0f);
+    assert(nds_disaster_is_warning(&system));
+    assert(fabsf(nds_disaster_warning_remaining(&system) - 2.0f) < 0.001f);
+    assert(system.earthquake.elapsed == 0.0f);
+
+    nds_disaster_system_update(&system, &player, scene, 2.0f);
+    assert(!nds_disaster_is_warning(&system));
+    assert(system.earthquake.active == 1);
     assert(system.earthquake.elapsed > 0.0f);
 
     nds_disaster_system_stop(&system, scene);
@@ -49,9 +58,11 @@ int main(void)
     nds_disaster_system_start(&system, NDS_DISASTER_WINDSTORM);
     assert(system.active == 1);
     assert(system.active_type == NDS_DISASTER_WINDSTORM);
-    assert(system.windstorm.active == 1);
+    assert(system.windstorm.active == 0);
 
-    nds_disaster_system_update(&system, &player, scene, 1.0f);
+    nds_disaster_system_update(&system, &player, scene, 3.0f);
+    assert(!nds_disaster_is_warning(&system));
+    assert(system.windstorm.active == 1);
     assert(system.windstorm.elapsed > 0.0f);
     assert(nds_part_get_position(part, &after) == NDS_OK);
     assert(fabsf(after.x - before.x) + fabsf(after.z - before.z) > 0.0f);
