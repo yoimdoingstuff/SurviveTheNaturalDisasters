@@ -27,7 +27,7 @@ void nds_round_init(nds_round* round)
     if (!round) return;
     round->state = NDS_ROUND_INTERMISSION;
     round->state_time = 0.0f;
-    round->intermission_duration = 10.0f;
+    round->intermission_duration = 5.0f;
     round->round_duration = 60.0f;
     round->results_duration = 5.0f;
     round->round_number = 0;
