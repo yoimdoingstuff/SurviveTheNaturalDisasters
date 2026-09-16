@@ -7,34 +7,12 @@ if(NOT CMAKE_BUILD_TYPE)
 endif()
 enable_testing()
 option(NDS_ENABLE_ASAN "Enable MSVC AddressSanitizer" OFF)
-
 set(ENGINE_CORE_SOURCES
-    engine/src/core/log.c
-    engine/src/core/config.c
-    engine/src/core/clock.c
-    engine/src/core/memstat.c
-    engine/src/core/app.c
-    engine/src/game/player.c
-    engine/src/game/round.c
-    engine/src/game/disaster.c
-    engine/src/game/disaster_system.c
-    engine/src/game/physics.c
-    engine/src/scene/instance.c
-    engine/src/scene/instance_child_alias.c
-    engine/src/scene/part.c
-    engine/src/content/map_loader.c
-    engine/src/content/map_catalog.c
-    engine/src/render/draw.c
-    engine/src/render/math.c
-    engine/src/render/frustum.c
-    engine/src/render/camera.c
-    engine/src/render/mesh.c
-    engine/src/render/mesh_cache.c
-    engine/src/render/texture.c
-    engine/src/render/texture_cache.c
-    engine/src/render/renderer.c
-    engine/src/render/gles2.c
-)
+    engine/src/core/log.c engine/src/core/config.c engine/src/core/clock.c engine/src/core/memstat.c engine/src/core/app.c
+    engine/src/game/player.c engine/src/game/round.c engine/src/game/disaster.c engine/src/game/disaster_system.c engine/src/game/physics.c
+    engine/src/scene/instance.c engine/src/scene/instance_child_alias.c engine/src/scene/part.c engine/src/content/map_loader.c engine/src/content/map_catalog.c
+    engine/src/render/draw.c engine/src/render/math.c engine/src/render/frustum.c engine/src/render/camera.c engine/src/render/mesh.c engine/src/render/mesh_cache.c
+    engine/src/render/texture.c engine/src/render/texture_cache.c engine/src/render/renderer.c engine/src/render/gles2.c)
 if(WIN32)
     list(APPEND ENGINE_CORE_SOURCES engine/src/render/gles2_backend.c)
     set(ENGINE_PLATFORM_SOURCES engine/src/platform/windows/platform_windows.c)
@@ -43,13 +21,7 @@ if(WIN32)
 else()
     message(FATAL_ERROR "No platform backend implemented for this target yet - Windows is currently the only supported build. See TODO.md Phase 0/1.")
 endif()
-
-# Keep the explicit source list, but verify it stays in sync with the tree.
-# This prevents a new implementation file from compiling nowhere and only
-# surfacing later as an unresolved-symbol linker failure.
-file(GLOB_RECURSE ENGINE_DISCOVERED_SOURCES CONFIGURE_DEPENDS
-    "${CMAKE_CURRENT_SOURCE_DIR}/engine/src/*.c"
-)
+file(GLOB_RECURSE ENGINE_DISCOVERED_SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/engine/src/*.c")
 set(ENGINE_CONFIGURED_SOURCES ${ENGINE_CORE_SOURCES} ${ENGINE_PLATFORM_SOURCES})
 set(ENGINE_MISSING_SOURCES ${ENGINE_DISCOVERED_SOURCES})
 foreach(ENGINE_SOURCE IN LISTS ENGINE_CONFIGURED_SOURCES)
@@ -59,26 +31,15 @@ endforeach()
 if(ENGINE_MISSING_SOURCES)
     message(FATAL_ERROR "engine/src contains C sources not linked into engine_core: ${ENGINE_MISSING_SOURCES}")
 endif()
-
 if(MSVC AND NDS_ENABLE_ASAN)
     add_compile_options(/fsanitize=address)
     add_link_options(/fsanitize=address)
 endif()
-
 add_library(engine_core STATIC ${ENGINE_CORE_SOURCES} ${ENGINE_PLATFORM_SOURCES})
 target_include_directories(engine_core PUBLIC engine/include engine/src/render)
 if(MSVC)
     target_compile_options(engine_core PRIVATE /W4)
-    # The Windows SDK OpenGL header expects the Win32 calling-convention
-    # macros to be defined before GL/gl.h is parsed. The renderer loads its
-    # modern GL entry points manually, so it does not otherwise need windows.h.
-    # Keep the legacy GL typedef spelling used by the renderer compatible with
-    # the Windows SDK headers as well.
-    target_compile_definitions(engine_core PRIVATE
-        APIENTRY=__stdcall
-        WINGDIAPI=__declspec\(dllimport\)
-        PFNGLLINKPROGRAMPROC=PFNGLINKPROGRAMPROC
-    )
+    target_compile_definitions(engine_core PRIVATE APIENTRY=__stdcall WINGDIAPI=__declspec\(dllimport\) PFNGLLINKPROGRAMPROC=PFNGLINKPROGRAMPROC)
 else()
     target_compile_options(engine_core PRIVATE -Wall -Wextra -Wpedantic)
 endif()
@@ -129,3 +90,6 @@ add_test(NAME nds_disaster_system_test COMMAND nds_disaster_system_test)
 add_executable(nds_physics_test engine/tests/physics_test.c)
 target_link_libraries(nds_physics_test PRIVATE engine_core ${ENGINE_PLATFORM_LIBS})
 add_test(NAME nds_physics_test COMMAND nds_physics_test)
+add_executable(nds_player_test engine/tests/player_test.c)
+target_link_libraries(nds_player_test PRIVATE engine_core ${ENGINE_PLATFORM_LIBS})
+add_test(NAME nds_player_test COMMAND nds_player_test)
