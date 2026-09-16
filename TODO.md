@@ -64,7 +64,7 @@ Legend:
 - [ ] Binary .rbxm/.rbxl avatar decoding
 - [ ] Avatar mesh conversion to project-owned mesh format
 - [ ] Avatar texture conversion to project-owned texture format
-- [ ] Basic legacy-compatible avatar rig
+- [x] Basic legacy-compatible avatar rig
 - [ ] Character animation conversion
 
 ## Phase 2 - Rendering
@@ -122,7 +122,7 @@ Legend:
 - [~] Physics stress test
 
 ## Phase 5 - Characters and humanoid systems
-- [ ] Character model abstraction
+- [x] Character model abstraction
 - [ ] Humanoid/controller state machine
 - [x] Walk/run/jump
 - [x] Ground detection
@@ -133,8 +133,8 @@ Legend:
 - [ ] Touch movement controls
 - [x] Desktop keyboard/mouse controls
 - [ ] Controller/gamepad input
-- [ ] Character animation abstraction
-- [ ] Basic legacy-compatible avatar rig
+- [~] Character animation abstraction
+- [x] Basic legacy-compatible avatar rig
 - [ ] Player/character ownership model
 - [ ] Character replication hooks
 
@@ -191,9 +191,9 @@ Legend:
 ## Phase 9 - NDS gameplay prototype
 - [~] Implement round state machine
 - [~] Intermission/countdown
-- [ ] Map selection
+- [x] Map selection
 - [x] Disaster selection/randomization <!-- deterministic two-disaster rotation currently implemented -->
-- [~] Disaster lifecycle API <!-- Earthquake and Windstorm are integrated -->
+- [x] Disaster lifecycle API <!-- Earthquake and Windstorm are integrated -->
 - [x] First disaster implementation <!-- Earthquake prototype -->
 - [~] Second disaster implementation <!-- Windstorm prototype -->
 - [x] Player survival/death tracking
@@ -201,7 +201,7 @@ Legend:
 - [ ] One complete playable map
 - [~] Multiple disaster prototypes
 - [~] Offline single-player round using the same simulation interfaces intended for multiplayer
-- [~] Disaster warning phase
+- [x] Disaster warning phase
 - [ ] Validate complete end-to-end round
 
 ## Phase 10 - Base game systems
@@ -209,8 +209,8 @@ Legend:
 - [~] Multiple disaster types
 - [ ] Disaster configuration/settings
 - [ ] Round timing configuration
-- [ ] Spawn selection
-- [ ] Player elimination/survival logic
+- [~] Spawn selection
+- [~] Player elimination/survival logic
 - [ ] Spectating
 - [ ] Results screen
 - [x] Base HUD
