@@ -28,24 +28,80 @@ void nds_round_init(nds_round* round)
 
 void nds_round_update(nds_round* round, float delta_seconds)
 {
+    float remaining;
     if (!round || delta_seconds <= 0.0f) return;
-    round->state_time += delta_seconds;
-    switch (round->state) {
-    case NDS_ROUND_INTERMISSION:
-        if (round->state_time >= round->intermission_duration) {
+
+    remaining = delta_seconds;
+    while (remaining > 0.0f) {
+        float duration;
+        float available;
+
+        switch (round->state) {
+        case NDS_ROUND_INTERMISSION:
+            duration = round->intermission_duration;
+            break;
+        case NDS_ROUND_PLAYING:
+            duration = round->round_duration;
+            break;
+        case NDS_ROUND_RESULTS:
+            duration = round->results_duration;
+            break;
+        default:
+            return;
+        }
+
+        if (duration <= 0.0f) {
+            available = remaining;
+        } else {
+            available = duration - round->state_time;
+            if (available < 0.0f) available = 0.0f;
+        }
+
+        if (duration > 0.0f && remaining < available) {
+            round->state_time += remaining;
+            remaining = 0.0f;
+            break;
+        }
+
+        if (duration > 0.0f) {
+            remaining -= available;
+            round->state_time = duration;
+        } else {
+            remaining = 0.0f;
+        }
+
+        switch (round->state) {
+        case NDS_ROUND_INTERMISSION:
             round->round_number++;
             round->player_survived = 0;
             round->disaster = nds_round_select_disaster(round->round_number);
             nds_round_set_state(round, NDS_ROUND_PLAYING);
+            break;
+        case NDS_ROUND_PLAYING:
+            nds_round_set_state(round, NDS_ROUND_RESULTS);
+            break;
+        case NDS_ROUND_RESULTS:
+            nds_round_set_state(round, NDS_ROUND_INTERMISSION);
+            break;
+        default:
+            return;
         }
-        break;
-    case NDS_ROUND_PLAYING:
-        if (round->state_time >= round->round_duration) nds_round_set_state(round, NDS_ROUND_RESULTS);
-        break;
-    case NDS_ROUND_RESULTS:
-        if (round->state_time >= round->results_duration) nds_round_set_state(round, NDS_ROUND_INTERMISSION);
-        break;
     }
+}
+
+float nds_round_time_remaining(const nds_round* round)
+{
+    float duration;
+    if (!round) return 0.0f;
+    switch (round->state) {
+    case NDS_ROUND_INTERMISSION: duration = round->intermission_duration; break;
+    case NDS_ROUND_PLAYING: duration = round->round_duration; break;
+    case NDS_ROUND_RESULTS: duration = round->results_duration; break;
+    default: return 0.0f;
+    }
+    if (duration <= 0.0f) return 0.0f;
+    if (round->state_time >= duration) return 0.0f;
+    return duration - round->state_time;
 }
 
 const char* nds_round_state_name(nds_round_state state)
