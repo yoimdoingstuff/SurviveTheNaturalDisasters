@@ -43,6 +43,7 @@ int main(void)
     assert(fabsf(player.position.x - 2.0f) < 0.001f);
     assert(fabsf(player.position.y - 5.0f) < 0.001f);
     assert(fabsf(player.position.z - 4.0f) < 0.001f);
+    assert(fabsf(player.camera_distance - 8.0f) < 0.001f);
 
     assert(nds_player_attach_visual(&player, scene) == NDS_OK);
     avatar = nds_instance_find_child(scene, "PlayerAvatar");
@@ -89,18 +90,34 @@ int main(void)
     assert(right_props.position.x > player.position.x);
     assert(fabsf(left_props.position.z - arm_start_z) > 0.001f || fabsf(right_props.position.z - player.position.z) > 0.001f);
 
+    /* Third-person orbit pivots around the head and zoom stays within bounds. */
     nds_camera_init(&camera);
     nds_player_apply_camera(&player, &camera);
+    assert(fabsf(camera.target[1] - (player.position.y + 1.0f)) < 0.001f);
     assert(fabsf(camera.position[0] - player.position.x) > 1.0f || fabsf(camera.position[2] - player.position.z) > 1.0f);
+    nds_player_zoom_camera(&player, 2.0f);
+    assert(fabsf(player.camera_distance - 6.0f) < 0.001f);
+    nds_player_zoom_camera(&player, 100.0f);
+    assert(fabsf(player.camera_distance - 2.0f) < 0.001f);
+    nds_player_zoom_camera(&player, -100.0f);
+    assert(fabsf(player.camera_distance - 24.0f) < 0.001f);
 
+    /* First person uses head height and hides the avatar instead of putting
+       the camera through the torso. */
     nds_player_set_third_person(&player, 0);
+    nds_player_update_visual(&player, scene);
     nds_player_apply_camera(&player, &camera);
     assert(fabsf(camera.position[0] - player.position.x) < 0.001f);
-    assert(fabsf(camera.position[1] - (player.position.y + 0.35f)) < 0.001f);
+    assert(fabsf(camera.position[1] - (player.position.y + 1.0f)) < 0.001f);
+    assert(fabsf(camera.position[2] - player.position.z) < 0.001f);
+    assert(nds_part_get_properties(torso, &torso_props) == NDS_OK);
+    assert(!torso_props.visible);
 
     nds_player_set_third_person(&player, 1);
+    nds_player_update_visual(&player, scene);
     nds_player_rotate_camera(&player, 90.0f, 20.0f);
     nds_player_apply_camera(&player, &camera);
+    assert(fabsf(camera.target[1] - (player.position.y + 1.0f)) < 0.001f);
     assert(fabsf(camera.position[0] - player.position.x) > 1.0f || fabsf(camera.position[2] - player.position.z) > 1.0f);
 
     player.alive = 0;
