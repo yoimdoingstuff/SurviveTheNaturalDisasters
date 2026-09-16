@@ -10,7 +10,7 @@ option(NDS_ENABLE_ASAN "Enable MSVC AddressSanitizer" OFF)
 set(ENGINE_CORE_SOURCES
     engine/src/core/log.c engine/src/core/config.c engine/src/core/clock.c engine/src/core/memstat.c engine/src/core/app.c
     engine/src/game/player.c engine/src/game/round.c engine/src/game/disaster.c engine/src/game/disaster_system.c engine/src/game/physics.c engine/src/game/stats.c engine/src/game/save.c
-    engine/src/scene/instance.c engine/src/scene/instance_child_alias.c engine/src/scene/part.c engine/src/content/map_loader.c engine/src/content/rbxlx_loader.c engine/src/content/map_catalog.c engine/src/content/map_editor.c
+    engine/src/scene/instance.c engine/src/scene/instance_child_alias.c engine/src/scene/part.c engine/src/content/map_loader.c engine/src/content/rbxlx_loader.c engine/src/content/map_catalog.c engine/src/content/map_editor.c engine/src/content/map_validation.c
     engine/src/render/draw.c engine/src/render/math.c engine/src/render/frustum.c engine/src/render/camera.c engine/src/render/mesh.c engine/src/render/mesh_cache.c
     engine/src/render/texture.c engine/src/render/texture_cache.c engine/src/render/renderer.c engine/src/render/gles2.c engine/src/render/gles2_hud_globals.c)
 if(WIN32)
@@ -106,3 +106,6 @@ set_tests_properties(nds_save_test PROPERTIES WORKING_DIRECTORY "${CMAKE_SOURCE_
 add_executable(nds_map_editor_test engine/tests/map_editor_test.c)
 target_link_libraries(nds_map_editor_test PRIVATE engine_core ${ENGINE_PLATFORM_LIBS})
 add_test(NAME nds_map_editor_test COMMAND nds_map_editor_test)
+add_executable(nds_map_validation_test engine/tests/map_validation_test.c)
+target_link_libraries(nds_map_validation_test PRIVATE engine_core ${ENGINE_PLATFORM_LIBS})
+add_test(NAME nds_map_validation_test COMMAND nds_map_validation_test)
