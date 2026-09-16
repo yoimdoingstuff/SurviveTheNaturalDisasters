@@ -15,9 +15,15 @@ jobs:
         run: |
           $path = 'engine/src/core/app.c'
           $text = Get-Content -Raw -Encoding UTF8 $path
-
-          $text = $text.Replace('#include <string.h>\n', '#include <string.h>\n#ifdef _WIN32\n#include <windows.h>\n#endif\n\nstatic FILE* g_runtime_debug_log=NULL;\nstatic void runtime_debug_open(void){g_runtime_debug_log=fopen("runtime_debug.log","ab");if(g_runtime_debug_log){fprintf(g_runtime_debug_log,"\\n=== runtime start ===\\n");fflush(g_runtime_debug_log);}}\nstatic void runtime_debug(const char* message){if(g_runtime_debug_log&&message){fprintf(g_runtime_debug_log,"%s\\n",message);fflush(g_runtime_debug_log);}}\n#ifdef _WIN32\nstatic LONG WINAPI runtime_unhandled_exception(EXCEPTION_POINTERS* info){if(g_runtime_debug_log){fprintf(g_runtime_debug_log,"UNHANDLED_EXCEPTION code=0x%08lx address=%p\\n",(unsigned long)(info?info->ExceptionRecord->ExceptionCode:0),(void*)(info?info->ExceptionRecord->ExceptionAddress:NULL));fflush(g_runtime_debug_log);}return EXCEPTION_EXECUTE_HANDLER;}\n#endif\n')
-          $text = $text.Replace('if(!options)return NDS_ERR_INVALID_ARG;rc=platform_init();', 'if(!options)return NDS_ERR_INVALID_ARG;runtime_debug_open();SetUnhandledExceptionFilter(runtime_unhandled_exception);runtime_debug("stage: before platform_init");rc=platform_init();runtime_debug("stage: platform_init returned");')
+          $marker = 'static const char* TAG="app";'
+          $logger = @'
+static FILE* g_runtime_debug_log=NULL;
+static void runtime_debug_open(void){g_runtime_debug_log=fopen("runtime_debug.log","ab");if(g_runtime_debug_log){fprintf(g_runtime_debug_log,"\\n=== runtime start ===\\n");fflush(g_runtime_debug_log);}}
+static void runtime_debug(const char* message){if(g_runtime_debug_log&&message){fprintf(g_runtime_debug_log,"%s\\n",message);fflush(g_runtime_debug_log);}}
+'@
+          if(-not $text.Contains($marker)){throw 'app marker not found'}
+          $text = $text.Replace($marker, $logger + "`n" + $marker)
+          $text = $text.Replace('if(!options)return NDS_ERR_INVALID_ARG;rc=platform_init();', 'if(!options)return NDS_ERR_INVALID_ARG;runtime_debug_open();runtime_debug("stage: before platform_init");rc=platform_init();runtime_debug("stage: platform_init returned");')
           $text = $text.Replace('rc=platform_create_window(&win_desc);if(rc!=NDS_OK){', 'runtime_debug("stage: before platform_create_window");rc=platform_create_window(&win_desc);runtime_debug("stage: platform_create_window returned");if(rc!=NDS_OK){')
           $text = $text.Replace('{size_t initial_map=nds_map_catalog_select(1);const char* initial_path=', 'runtime_debug("stage: before initial scene load");{size_t initial_map=nds_map_catalog_select(1);const char* initial_path=')
           $text = $text.Replace('rc=load_startup_scene(initial_path,mesh_cache,texture_cache,&scene);}if(rc!=NDS_OK)goto cleanup_texture;', 'rc=load_startup_scene(initial_path,mesh_cache,texture_cache,&scene);runtime_debug("stage: initial scene load returned");}if(rc!=NDS_OK)goto cleanup_texture;')
@@ -29,7 +35,6 @@ jobs:
           $text = $text.Replace('if(map_rc==NDS_OK&&next_scene){nds_physics_clear(&physics);', 'if(map_rc==NDS_OK&&next_scene){runtime_debug("stage: swapping round scene");nds_physics_clear(&physics);')
           $text = $text.Replace('if(!smoke_mode){int window_width=0,window_height=0;', 'if(!smoke_mode){if(frames_run<10||round.state==NDS_ROUND_PLAYING){runtime_debug("stage: render frame");}int window_width=0,window_height=0;')
           $text = $text.Replace('frames_run++;if(smoke_mode&&frames_run>=(unsigned long)smoke_frames)platform_request_quit();', 'frames_run++;if((frames_run%60u)==0u){char debug_frame[128];snprintf(debug_frame,sizeof(debug_frame),"frame=%lu round_state=%d menu=%d player_alive=%d",frames_run,(int)round.state,menu_active,player.alive);runtime_debug(debug_frame);}if(smoke_mode&&frames_run>=(unsigned long)smoke_frames)platform_request_quit();')
-          $text = $text.Replace('nds_config_destroy(cfg);platform_shutdown();return NDS_OK;', 'runtime_debug("stage: normal cleanup reached");nds_config_destroy(cfg);platform_shutdown();if(g_runtime_debug_log){runtime_debug("=== runtime end ===");fclose(g_runtime_debug_log);g_runtime_debug_log=NULL;}return NDS_OK;')
           Set-Content -Path $path -Value $text -Encoding UTF8 -NoNewline
       - name: Configure
         run: cmake -S . -B build -G "Visual Studio 18 2026" -A x64
