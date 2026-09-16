@@ -11,7 +11,8 @@ static const char* const MAP_PATHS[] = {
     "game/content/maps/surf_central.ndsmap.json",
     "game/content/maps/fort_indestructible.ndsmap.json",
     "game/content/maps/trailer_park.ndsmap.json",
-    "game/content/maps/glass_office.ndsmap.json"
+    "game/content/maps/glass_office.ndsmap.json",
+    "game/content/maps/launch_land.ndsmap.json"
 };
 
 static const char* const MAP_NAMES[] = {
@@ -23,7 +24,8 @@ static const char* const MAP_NAMES[] = {
     "Surf Central",
     "Fort Indestructible",
     "Trailer Park",
-    "Glass Office"
+    "Glass Office",
+    "Launch Land"
 };
 
 static size_t selected_map = 0;
