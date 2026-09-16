@@ -67,15 +67,10 @@ void nds_player_update(nds_player_controller* p,const nds_instance* scene,float 
     float local_x,local_forward,len,ox,oy,oz,yaw,s,c,world_x,world_z;
     if(!p||!scene||!p->alive)return;if(dt<0)dt=0;if(dt>.05f)dt=.05f;
     local_x=(float)(r-l);local_forward=(float)(f-b);len=sqrtf(local_x*local_x+local_forward*local_forward);if(len>0){local_x/=len;local_forward/=len;}
-
-    /* WASD is camera-relative, like a third-person character controller. At yaw 0,
-       W moves toward -Z, which is the direction the default camera looks. */
     yaw=rad(p->camera_yaw);s=sinf(yaw);c=cosf(yaw);
-    world_x=local_forward*(-s)+local_x*c;
-    world_z=local_forward*(-c)+local_x*(-s);
+    world_x=local_forward*(-s)+local_x*c;world_z=local_forward*(-c)+local_x*(-s);
     p->velocity.x=world_x*p->move_speed;p->velocity.z=world_z*p->move_speed;
-    if(len>0.001f){p->facing_yaw=deg(atan2f(world_x,-world_z));p->animation_time+=dt*(p->grounded?9.0f:4.0f);}
-    else p->animation_time+=dt*2.0f;
+    if(len>0.001f){p->facing_yaw=deg(atan2f(world_x,-world_z));p->animation_time+=dt*(p->grounded?9.0f:4.0f);}else p->animation_time+=dt*2.0f;
     if(jump&&p->grounded){p->velocity.y=p->jump_speed;p->grounded=0;}p->velocity.y-=p->gravity*dt;
     ox=p->position.x;oy=p->position.y;oz=p->position.z;p->grounded=0;
     p->position.x+=p->velocity.x*dt;collide(p,scene,0,ox,p->half_width);
@@ -85,45 +80,29 @@ void nds_player_update(nds_player_controller* p,const nds_instance* scene,float 
 }
 
 static nds_instance* child(nds_instance* model,const char* name){return nds_instance_find_child(model,name);}
-
 static void set_part(nds_instance* part, nds_vec3 position, nds_vec3 size, uint32_t color, nds_vec3 rotation, int visible)
-{
-    nds_part_properties p;
-    if(!part||nds_part_get_properties(part,&p)!=NDS_OK)return;
-    p.anchored=1;p.can_collide=0;p.visible=visible;p.position=position;p.size=size;p.color_rgba=color;p.rotation=rotation;
-    nds_part_set_properties(part,&p);
-}
+{nds_part_properties p;if(!part||nds_part_get_properties(part,&p)!=NDS_OK)return;p.anchored=1;p.can_collide=0;p.visible=visible;p.position=position;p.size=size;p.color_rgba=color;p.rotation=rotation;nds_part_set_properties(part,&p);}
 
 nds_result nds_player_attach_visual(nds_player_controller* p, nds_instance* scene)
 {
     nds_instance *model,*body,*head,*left_arm,*right_arm,*left_leg,*right_leg,*shadow; nds_part_properties prop;
-    if(!p||!scene)return NDS_ERR_INVALID_ARG;
-    if(nds_instance_find_child(scene,"PlayerAvatar"))return NDS_OK;
-    model=nds_instance_create(NDS_CLASS_MODEL,"PlayerAvatar");
-    body=nds_instance_create(NDS_CLASS_PART,"PlayerTorso");head=nds_instance_create(NDS_CLASS_PART,"PlayerHead");
-    left_arm=nds_instance_create(NDS_CLASS_PART,"PlayerLeftArm");right_arm=nds_instance_create(NDS_CLASS_PART,"PlayerRightArm");
-    left_leg=nds_instance_create(NDS_CLASS_PART,"PlayerLeftLeg");right_leg=nds_instance_create(NDS_CLASS_PART,"PlayerRightLeg");
-    shadow=nds_instance_create(NDS_CLASS_PART,"PlayerShadow");
+    if(!p||!scene)return NDS_ERR_INVALID_ARG;if(nds_instance_find_child(scene,"PlayerAvatar"))return NDS_OK;
+    model=nds_instance_create(NDS_CLASS_MODEL,"PlayerAvatar");body=nds_instance_create(NDS_CLASS_PART,"PlayerTorso");head=nds_instance_create(NDS_CLASS_PART,"PlayerHead");left_arm=nds_instance_create(NDS_CLASS_PART,"PlayerLeftArm");right_arm=nds_instance_create(NDS_CLASS_PART,"PlayerRightArm");left_leg=nds_instance_create(NDS_CLASS_PART,"PlayerLeftLeg");right_leg=nds_instance_create(NDS_CLASS_PART,"PlayerRightLeg");shadow=nds_instance_create(NDS_CLASS_PART,"PlayerShadow");
     if(!model||!body||!head||!left_arm||!right_arm||!left_leg||!right_leg||!shadow){if(model)nds_instance_destroy(model);return NDS_ERR_UNKNOWN;}
     memset(&prop,0,sizeof(prop));prop.anchored=1;prop.can_collide=0;prop.visible=1;
-    prop.size=(nds_vec3){0.95f,1.05f,0.55f};prop.color_rgba=0x2f6fedff;prop.position=p->position;nds_part_set_properties(body,&prop);
-    prop.size=(nds_vec3){0.82f,0.82f,0.82f};prop.color_rgba=0xf0c9a4ff;prop.position=(nds_vec3){p->position.x,p->position.y+1.0f,p->position.z};nds_part_set_properties(head,&prop);
-    prop.size=(nds_vec3){0.38f,1.0f,0.42f};prop.color_rgba=0xf0c9a4ff;prop.position=(nds_vec3){p->position.x-.68f,p->position.y+.02f,p->position.z};nds_part_set_properties(left_arm,&prop);
-    prop.position=(nds_vec3){p->position.x+.68f,p->position.y+.02f,p->position.z};nds_part_set_properties(right_arm,&prop);
-    prop.size=(nds_vec3){0.42f,1.0f,0.48f};prop.color_rgba=0x27364dff;prop.position=(nds_vec3){p->position.x-.25f,p->position.y-.98f,p->position.z};nds_part_set_properties(left_leg,&prop);
-    prop.position=(nds_vec3){p->position.x+.25f,p->position.y-.98f,p->position.z};nds_part_set_properties(right_leg,&prop);
-    prop.size=(nds_vec3){1.65f,.025f,1.1f};prop.color_rgba=0x17202b70u;prop.transparency=0.55f;prop.position=(nds_vec3){p->position.x,p->position.y-p->half_height+.025f,p->position.z};nds_part_set_properties(shadow,&prop);
-    if(nds_instance_set_parent(model,scene)!=NDS_OK||nds_instance_set_parent(body,model)!=NDS_OK||nds_instance_set_parent(head,model)!=NDS_OK||nds_instance_set_parent(left_arm,model)!=NDS_OK||nds_instance_set_parent(right_arm,model)!=NDS_OK||nds_instance_set_parent(left_leg,model)!=NDS_OK||nds_instance_set_parent(right_leg,model)!=NDS_OK||nds_instance_set_parent(shadow,model)!=NDS_OK){nds_instance_destroy(model);return NDS_ERR_UNKNOWN;}
-    return NDS_OK;
+    prop.size=(nds_vec3){.95f,1.05f,.55f};prop.color_rgba=0x2f6fedff;prop.position=p->position;nds_part_set_properties(body,&prop);
+    prop.size=(nds_vec3){.82f,.82f,.82f};prop.color_rgba=0xf0c9a4ff;prop.position=(nds_vec3){p->position.x,p->position.y+1.0f,p->position.z};nds_part_set_properties(head,&prop);
+    prop.size=(nds_vec3){.38f,1.0f,.42f};prop.color_rgba=0xf0c9a4ff;prop.position=(nds_vec3){p->position.x-.68f,p->position.y+.02f,p->position.z};nds_part_set_properties(left_arm,&prop);prop.position=(nds_vec3){p->position.x+.68f,p->position.y+.02f,p->position.z};nds_part_set_properties(right_arm,&prop);
+    prop.size=(nds_vec3){.42f,1.0f,.48f};prop.color_rgba=0x27364dff;prop.position=(nds_vec3){p->position.x-.25f,p->position.y-.98f,p->position.z};nds_part_set_properties(left_leg,&prop);prop.position=(nds_vec3){p->position.x+.25f,p->position.y-.98f,p->position.z};nds_part_set_properties(right_leg,&prop);
+    prop.size=(nds_vec3){1.65f,.025f,1.1f};prop.color_rgba=0x17202b70u;prop.transparency=.55f;prop.position=(nds_vec3){p->position.x,p->position.y-p->half_height+.025f,p->position.z};nds_part_set_properties(shadow,&prop);
+    if(nds_instance_set_parent(model,scene)!=NDS_OK||nds_instance_set_parent(body,model)!=NDS_OK||nds_instance_set_parent(head,model)!=NDS_OK||nds_instance_set_parent(left_arm,model)!=NDS_OK||nds_instance_set_parent(right_arm,model)!=NDS_OK||nds_instance_set_parent(left_leg,model)!=NDS_OK||nds_instance_set_parent(right_leg,model)!=NDS_OK||nds_instance_set_parent(shadow,model)!=NDS_OK){nds_instance_destroy(model);return NDS_ERR_UNKNOWN;}return NDS_OK;
 }
 
 void nds_player_update_visual(const nds_player_controller* p, nds_instance* scene)
 {
-    nds_instance* model;float speed,walk,swing,bob;float yaw;float sy,cy;nds_vec3 body_pos,head_pos;
-    if(!p||!scene)return;
-    model=nds_instance_find_child(scene,"PlayerAvatar");if(!model)return;
-    speed=sqrtf(p->velocity.x*p->velocity.x+p->velocity.z*p->velocity.z);walk=speed>0.1f?(0.55f*sinf(p->animation_time)):0.0f;swing=speed>0.1f?28.0f*sinf(p->animation_time):5.0f*sinf(p->animation_time*.5f);bob=speed>0.1f?0.045f*fabsf(sinf(p->animation_time)):0.0f;
-    yaw=p->facing_yaw;sy=sinf(rad(yaw));cy=cosf(rad(yaw));
+    nds_instance* model;float speed,walk,swing,bob,yaw,sy,cy;nds_vec3 body_pos,head_pos;
+    if(!p||!scene)return;model=nds_instance_find_child(scene,"PlayerAvatar");if(!model)return;
+    speed=sqrtf(p->velocity.x*p->velocity.x+p->velocity.z*p->velocity.z);walk=speed>0.1f?(0.55f*sinf(p->animation_time)):0.0f;swing=speed>0.1f?28.0f*sinf(p->animation_time):5.0f*sinf(p->animation_time*.5f);bob=speed>0.1f?0.045f*fabsf(sinf(p->animation_time)):0.0f;yaw=p->facing_yaw;sy=sinf(rad(yaw));cy=cosf(rad(yaw));
     body_pos=(nds_vec3){p->position.x,p->position.y+bob,p->position.z};head_pos=(nds_vec3){p->position.x,p->position.y+1.0f+bob,p->position.z};
     set_part(child(model,"PlayerTorso"),body_pos,(nds_vec3){.95f,1.05f,.55f},0x2f6fedff,(nds_vec3){0,yaw,0},p->alive);
     set_part(child(model,"PlayerHead"),head_pos,(nds_vec3){.82f,.82f,.82f},0xf0c9a4ff,(nds_vec3){0,yaw,0},p->alive);
@@ -132,12 +111,10 @@ void nds_player_update_visual(const nds_player_controller* p, nds_instance* scen
     set_part(child(model,"PlayerLeftLeg"),(nds_vec3){body_pos.x-sy*.25f,body_pos.y-.98f,body_pos.z-cy*.25f},(nds_vec3){.42f,1.0f,.48f},0x27364dff,(nds_vec3){-swing,yaw,0},p->alive);
     set_part(child(model,"PlayerRightLeg"),(nds_vec3){body_pos.x+sy*.25f,body_pos.y-.98f,body_pos.z+cy*.25f},(nds_vec3){.42f,1.0f,.48f},0x27364dff,(nds_vec3){swing,yaw,0},p->alive);
     set_part(child(model,"PlayerShadow"),(nds_vec3){p->position.x,p->position.y-p->half_height+.025f,p->position.z},(nds_vec3){1.65f,.025f,1.1f},0x17202b70u,(nds_vec3){0,0,0},p->alive);
+    (void)walk;
 }
 
-void nds_player_rotate_camera(nds_player_controller* p,float yaw_delta,float pitch_delta)
-{
-    if(!p)return;p->camera_yaw+=yaw_delta;p->camera_pitch+=pitch_delta;if(p->camera_pitch<5.0f)p->camera_pitch=5.0f;if(p->camera_pitch>55.0f)p->camera_pitch=55.0f;
-}
+void nds_player_rotate_camera(nds_player_controller* p,float yaw_delta,float pitch_delta){if(!p)return;p->camera_yaw+=yaw_delta;p->camera_pitch+=pitch_delta;if(p->camera_pitch<5.0f)p->camera_pitch=5.0f;if(p->camera_pitch>55.0f)p->camera_pitch=55.0f;}
 void nds_player_set_third_person(nds_player_controller* p,int enabled){if(p)p->third_person=enabled?1:0;}
 
 void nds_player_apply_camera(const nds_player_controller* p,nds_camera* camera)
@@ -146,6 +123,6 @@ void nds_player_apply_camera(const nds_player_controller* p,nds_camera* camera)
     if(!p||!camera)return;
     yaw=rad(p->camera_yaw);pitch=rad(p->camera_pitch);cy=cosf(yaw);sy=sinf(yaw);cp=cosf(pitch);sp=sinf(pitch);
     camera->target[0]=p->position.x;camera->target[1]=p->position.y+.5f;camera->target[2]=p->position.z;
-    if(!p->third_person){camera->position[0]=p->position.x;camera->position[1]=p->position.y+.35f;camera->position[2]=p->position.z;camera->target[1]=p->position.y+.35f;camera->target[2]=p->position.z-1.0f;return;}
+    if(!p->third_person){camera->position[0]=p->position.x;camera->position[1]=p->position.y+.35f;camera->position[2]=p->position.z;camera->target[0]=p->position.x-sy;camera->target[1]=p->position.y+.35f;camera->target[2]=p->position.z-cy;return;}
     camera->position[0]=p->position.x+sy*cp*dist;camera->position[1]=p->position.y+sp*dist+2.0f;camera->position[2]=p->position.z+cy*cp*dist;
 }
