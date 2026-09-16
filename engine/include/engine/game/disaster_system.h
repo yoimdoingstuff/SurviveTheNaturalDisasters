@@ -17,6 +17,13 @@ typedef struct nds_windstorm {
     uint8_t active;
 } nds_windstorm;
 
+typedef struct nds_disaster_settings {
+    float warning_duration;
+    float earthquake_pulse_interval;
+    float windstorm_gust_interval;
+    float windstorm_strength;
+} nds_disaster_settings;
+
 typedef struct nds_disaster_system {
     nds_earthquake earthquake;
     nds_windstorm windstorm;
@@ -27,6 +34,8 @@ typedef struct nds_disaster_system {
 } nds_disaster_system;
 
 void nds_disaster_system_init(nds_disaster_system* system);
+void nds_disaster_system_set_settings(nds_disaster_system* system,
+                                       const nds_disaster_settings* settings);
 void nds_disaster_system_start(nds_disaster_system* system, nds_disaster_type type);
 void nds_disaster_system_update(nds_disaster_system* system,
                                 nds_player_controller* player,
