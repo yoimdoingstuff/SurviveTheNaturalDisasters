@@ -9,7 +9,7 @@
 #include <stdio.h>
 #include <string.h>
 
-static const char* TAG="platform_win32";static const char* NDS_WNDCLASS_NAME="NDSRuntimeWindowClass";static HINSTANCE g_hinstance=NULL;static HWND g_hwnd=NULL;static HDC g_hdc=NULL;static HGLRC g_gl_context=NULL;static int g_quit_requested=0;static int g_key_state[PLATFORM_KEY_COUNT];static int g_mouse_x=0,g_mouse_y=0;static int g_mouse_buttons[3];static int g_mouse_capture=0;static int g_mouse_virtual_x=0,g_mouse_virtual_y=0;static int g_capture_center_x=0,g_capture_center_y=0;static LARGE_INTEGER g_perf_frequency;
+static const char* TAG="platform_win32";static const char* NDS_WNDCLASS_NAME="NDSRuntimeWindowClass";static HINSTANCE g_hinstance=NULL;static HWND g_hwnd=NULL;static HDC g_hdc=NULL;static HGLRC g_gl_context=NULL;static int g_quit_requested=0;static int g_key_state[PLATFORM_KEY_COUNT];static int g_mouse_x=0,g_mouse_y=0;static int g_mouse_buttons[3];static int g_mouse_capture=0;static int g_mouse_virtual_x=0,g_mouse_virtual_y=0;static int g_capture_center_x=0,g_capture_center_y=0;static int g_mouse_wheel_delta=0;static LARGE_INTEGER g_perf_frequency;
 
 typedef HGLRC (WINAPI *PFNWGLCREATECONTEXTATTRIBSARBPROC)(HDC,HGLRC,const int*);
 #define WGL_CONTEXT_MAJOR_VERSION_ARB 0x2091
@@ -18,40 +18,12 @@ typedef HGLRC (WINAPI *PFNWGLCREATECONTEXTATTRIBSARBPROC)(HDC,HGLRC,const int*);
 #define WGL_CONTEXT_COMPATIBILITY_PROFILE_BIT_ARB 0x00000002
 
 static platform_key win32_vk_to_platform_key(int vk){switch(vk){case VK_ESCAPE:return PLATFORM_KEY_ESCAPE;case 'W':return PLATFORM_KEY_W;case 'A':return PLATFORM_KEY_A;case 'S':return PLATFORM_KEY_S;case 'D':return PLATFORM_KEY_D;case VK_SPACE:return PLATFORM_KEY_SPACE;case 'Q':return PLATFORM_KEY_Q;case 'E':return PLATFORM_KEY_E;case 'C':return PLATFORM_KEY_C;case VK_LEFT:return PLATFORM_KEY_LEFT;case VK_RIGHT:return PLATFORM_KEY_RIGHT;case VK_RETURN:return PLATFORM_KEY_ENTER;case 'I':return PLATFORM_KEY_I;case 'M':return PLATFORM_KEY_M;default:return PLATFORM_KEY_UNKNOWN;}}
+static void win32_center_capture_cursor(void){POINT point;if(!g_hwnd)return;point.x=g_capture_center_x;point.y=g_capture_center_y;ClientToScreen(g_hwnd,&point);SetCursorPos(point.x,point.y);}
+static void win32_begin_mouse_capture(void){RECT rect;if(!g_hwnd||g_mouse_capture)return;if(!GetClientRect(g_hwnd,&rect))return;g_capture_center_x=(rect.left+rect.right)/2;g_capture_center_y=(rect.top+rect.bottom)/2;g_mouse_capture=1;g_mouse_virtual_x=0;g_mouse_virtual_y=0;SetCapture(g_hwnd);ShowCursor(FALSE);win32_center_capture_cursor();}
+static void win32_end_mouse_capture(void){if(!g_mouse_capture)return;g_mouse_capture=0;ReleaseCapture();ShowCursor(TRUE);}
+static LRESULT CALLBACK nds_wnd_proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam){switch(msg){case WM_CLOSE:g_quit_requested=1;return 0;case WM_DESTROY:win32_end_mouse_capture();PostQuitMessage(0);return 0;case WM_KEYDOWN:case WM_KEYUP:{platform_key key=win32_vk_to_platform_key((int)wparam);if(key!=PLATFORM_KEY_UNKNOWN)g_key_state[key]=(msg==WM_KEYDOWN)?1:0;return 0;}case WM_MOUSEMOVE:{int x=GET_X_LPARAM(lparam),y=GET_Y_LPARAM(lparam);if(g_mouse_capture){int dx=x-g_capture_center_x,dy=y-g_capture_center_y;if(dx||dy){g_mouse_virtual_x+=dx;g_mouse_virtual_y+=dy;win32_center_capture_cursor();}}else{g_mouse_x=x;g_mouse_y=y;}return 0;}case WM_LBUTTONDOWN:g_mouse_buttons[0]=1;return 0;case WM_LBUTTONUP:g_mouse_buttons[0]=0;return 0;case WM_RBUTTONDOWN:g_mouse_buttons[1]=1;win32_begin_mouse_capture();return 0;case WM_RBUTTONUP:g_mouse_buttons[1]=0;win32_end_mouse_capture();return 0;case WM_MBUTTONDOWN:g_mouse_buttons[2]=1;return 0;case WM_MBUTTONUP:g_mouse_buttons[2]=0;return 0;case WM_MOUSEWHEEL:g_mouse_wheel_delta+=(short)HIWORD(wparam)/WHEEL_DELTA;return 0;case WM_PAINT:{PAINTSTRUCT ps;BeginPaint(hwnd,&ps);EndPaint(hwnd,&ps);return 0;}default:return DefWindowProc(hwnd,msg,wparam,lparam);}}
 
-static void win32_center_capture_cursor(void)
-{
-    POINT point;
-    if (!g_hwnd) return;
-    point.x=g_capture_center_x;point.y=g_capture_center_y;
-    ClientToScreen(g_hwnd,&point);
-    SetCursorPos(point.x,point.y);
-}
-
-static void win32_begin_mouse_capture(void)
-{
-    RECT rect;
-    if (!g_hwnd||g_mouse_capture)return;
-    if (!GetClientRect(g_hwnd,&rect))return;
-    g_capture_center_x=(rect.left+rect.right)/2;
-    g_capture_center_y=(rect.top+rect.bottom)/2;
-    g_mouse_capture=1;g_mouse_virtual_x=0;g_mouse_virtual_y=0;
-    SetCapture(g_hwnd);
-    ShowCursor(FALSE);
-    win32_center_capture_cursor();
-}
-
-static void win32_end_mouse_capture(void)
-{
-    if (!g_mouse_capture)return;
-    g_mouse_capture=0;
-    ReleaseCapture();
-    ShowCursor(TRUE);
-}
-
-static LRESULT CALLBACK nds_wnd_proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam){switch(msg){case WM_CLOSE:g_quit_requested=1;return 0;case WM_DESTROY:win32_end_mouse_capture();PostQuitMessage(0);return 0;case WM_KEYDOWN:case WM_KEYUP:{platform_key key=win32_vk_to_platform_key((int)wparam);if(key!=PLATFORM_KEY_UNKNOWN)g_key_state[key]=(msg==WM_KEYDOWN)?1:0;return 0;}case WM_MOUSEMOVE:{int x=GET_X_LPARAM(lparam),y=GET_Y_LPARAM(lparam);if(g_mouse_capture){int dx=x-g_capture_center_x,dy=y-g_capture_center_y;if(dx||dy){g_mouse_virtual_x+=dx;g_mouse_virtual_y+=dy;win32_center_capture_cursor();}}else{g_mouse_x=x;g_mouse_y=y;}return 0;}case WM_LBUTTONDOWN:g_mouse_buttons[0]=1;return 0;case WM_LBUTTONUP:g_mouse_buttons[0]=0;return 0;case WM_RBUTTONDOWN:g_mouse_buttons[1]=1;win32_begin_mouse_capture();return 0;case WM_RBUTTONUP:g_mouse_buttons[1]=0;win32_end_mouse_capture();return 0;case WM_MBUTTONDOWN:g_mouse_buttons[2]=1;return 0;case WM_MBUTTONUP:g_mouse_buttons[2]=0;return 0;case WM_PAINT:{PAINTSTRUCT ps;BeginPaint(hwnd,&ps);EndPaint(hwnd,&ps);return 0;}default:return DefWindowProc(hwnd,msg,wparam,lparam);}}
-
-nds_result platform_init(void){g_hinstance=GetModuleHandle(NULL);g_quit_requested=0;g_mouse_capture=0;g_mouse_virtual_x=0;g_mouse_virtual_y=0;memset(g_key_state,0,sizeof(g_key_state));memset(g_mouse_buttons,0,sizeof(g_mouse_buttons));if(!QueryPerformanceFrequency(&g_perf_frequency))return NDS_ERR_INIT_FAILED;WNDCLASSEXA wc;memset(&wc,0,sizeof(wc));wc.cbSize=sizeof(wc);wc.style=CS_HREDRAW|CS_VREDRAW|CS_OWNDC;wc.lpfnWndProc=nds_wnd_proc;wc.hInstance=g_hinstance;wc.hCursor=LoadCursor(NULL,IDC_ARROW);wc.lpszClassName=NDS_WNDCLASS_NAME;if(!RegisterClassExA(&wc)){DWORD error=GetLastError();if(error!=ERROR_CLASS_ALREADY_EXISTS)return NDS_ERR_INIT_FAILED;}NDS_LOGI(TAG,"platform_init ok");return NDS_OK;}
+nds_result platform_init(void){g_hinstance=GetModuleHandle(NULL);g_quit_requested=0;g_mouse_capture=0;g_mouse_virtual_x=0;g_mouse_virtual_y=0;g_mouse_wheel_delta=0;memset(g_key_state,0,sizeof(g_key_state));memset(g_mouse_buttons,0,sizeof(g_mouse_buttons));if(!QueryPerformanceFrequency(&g_perf_frequency))return NDS_ERR_INIT_FAILED;WNDCLASSEXA wc;memset(&wc,0,sizeof(wc));wc.cbSize=sizeof(wc);wc.style=CS_HREDRAW|CS_VREDRAW|CS_OWNDC;wc.lpfnWndProc=nds_wnd_proc;wc.hInstance=g_hinstance;wc.hCursor=LoadCursor(NULL,IDC_ARROW);wc.lpszClassName=NDS_WNDCLASS_NAME;if(!RegisterClassExA(&wc)){DWORD error=GetLastError();if(error!=ERROR_CLASS_ALREADY_EXISTS)return NDS_ERR_INIT_FAILED;}NDS_LOGI(TAG,"platform_init ok");return NDS_OK;}
 void platform_shutdown(void){win32_end_mouse_capture();platform_gl_context_destroy();UnregisterClassA(NDS_WNDCLASS_NAME,g_hinstance);}
 nds_result platform_create_window(const platform_window_desc* desc){if(!desc||desc->width<=0||desc->height<=0)return NDS_ERR_INVALID_ARG;DWORD style=WS_OVERLAPPEDWINDOW;if(!desc->resizable)style&=~(DWORD)(WS_THICKFRAME|WS_MAXIMIZEBOX);RECT rect={0,0,desc->width,desc->height};AdjustWindowRect(&rect,style,FALSE);g_hwnd=CreateWindowExA(0,NDS_WNDCLASS_NAME,desc->title?desc->title:"NDS Runtime",style,CW_USEDEFAULT,CW_USEDEFAULT,rect.right-rect.left,rect.bottom-rect.top,NULL,NULL,g_hinstance,NULL);if(!g_hwnd)return NDS_ERR_INIT_FAILED;g_hdc=GetDC(g_hwnd);if(!g_hdc){platform_destroy_window();return NDS_ERR_INIT_FAILED;}ShowWindow(g_hwnd,SW_SHOW);UpdateWindow(g_hwnd);return NDS_OK;}
 void platform_destroy_window(void){win32_end_mouse_capture();platform_gl_context_destroy();if(g_hdc&&g_hwnd){ReleaseDC(g_hwnd,g_hdc);g_hdc=NULL;}if(g_hwnd){DestroyWindow(g_hwnd);g_hwnd=NULL;}}
@@ -62,6 +34,7 @@ int platform_poll_events(void){MSG msg;while(PeekMessageA(&msg,NULL,0,0,PM_REMOV
 int platform_quit_requested(void){return g_quit_requested;}void platform_request_quit(void){g_quit_requested=1;}int platform_is_key_down(platform_key key){return key>=0&&key<PLATFORM_KEY_COUNT?g_key_state[key]:0;}
 void platform_get_mouse_position(int* out_x,int* out_y){if(g_mouse_capture){if(out_x)*out_x=g_mouse_virtual_x;if(out_y)*out_y=g_mouse_virtual_y;return;}if(out_x)*out_x=g_mouse_x;if(out_y)*out_y=g_mouse_y;}
 int platform_is_mouse_button_down(int button_index){return button_index>=0&&button_index<3?g_mouse_buttons[button_index]:0;}
+int platform_consume_mouse_wheel(void){int delta=g_mouse_wheel_delta;g_mouse_wheel_delta=0;return delta;}
 int platform_open_map_file_dialog(char* out_path,size_t out_path_size){OPENFILENAMEA ofn;char filter[]="Roblox XML Place (*.rbxlx)\0*.rbxlx\0NDS Map (*.ndsmap.json)\0*.ndsmap.json\0All Files (*.*)\0*.*\0\0";if(!out_path||out_path_size<2)return 0;out_path[0]='\0';memset(&ofn,0,sizeof(ofn));ofn.lStructSize=sizeof(ofn);ofn.hwndOwner=g_hwnd;ofn.lpstrFilter=filter;ofn.lpstrFile=out_path;ofn.nMaxFile=(DWORD)out_path_size;ofn.Flags=OFN_FILEMUSTEXIST|OFN_PATHMUSTEXIST|OFN_NOCHANGEDIR;ofn.lpstrTitle="Import a Roblox place or NDS map";return GetOpenFileNameA(&ofn)?1:0;}
 platform_file* platform_file_open(const char* path,const char* mode){return(platform_file*)fopen(path,mode);}size_t platform_file_read(platform_file* file,void* buffer,size_t size){return file?fread(buffer,1,size,(FILE*)file):0;}size_t platform_file_write(platform_file* file,const void* buffer,size_t size){return file?fwrite(buffer,1,size,(FILE*)file):0;}long platform_file_size(platform_file* file){if(!file)return-1;FILE* f=(FILE*)file;long current=ftell(f);if(current<0||fseek(f,0,SEEK_END)!=0)return-1;long size=ftell(f);fseek(f,current,SEEK_SET);return size;}void platform_file_close(platform_file* file){if(file)fclose((FILE*)file);}int platform_file_exists(const char* path){DWORD attr=GetFileAttributesA(path);return attr!=INVALID_FILE_ATTRIBUTES&&!(attr&FILE_ATTRIBUTE_DIRECTORY);}uint64_t platform_time_now_ns(void){LARGE_INTEGER counter;QueryPerformanceCounter(&counter);return(uint64_t)((double)counter.QuadPart/(double)g_perf_frequency.QuadPart*1000000000.0);}void platform_sleep_ms(uint32_t milliseconds){Sleep(milliseconds);}
 nds_result platform_gl_context_create(void){if(!g_hdc)return NDS_ERR_INIT_FAILED;if(g_gl_context)return NDS_OK;PIXELFORMATDESCRIPTOR pfd;memset(&pfd,0,sizeof(pfd));pfd.nSize=sizeof(pfd);pfd.nVersion=1;pfd.dwFlags=PFD_DRAW_TO_WINDOW|PFD_SUPPORT_OPENGL|PFD_DOUBLEBUFFER;pfd.iPixelType=PFD_TYPE_RGBA;pfd.cColorBits=32;pfd.cDepthBits=24;pfd.cAlphaBits=8;int format=ChoosePixelFormat(g_hdc,&pfd);if(!format||!SetPixelFormat(g_hdc,format,&pfd))return NDS_ERR_INIT_FAILED;HGLRC bootstrap=wglCreateContext(g_hdc);if(!bootstrap||!wglMakeCurrent(g_hdc,bootstrap)){if(bootstrap)wglDeleteContext(bootstrap);return NDS_ERR_INIT_FAILED;}PFNWGLCREATECONTEXTATTRIBSARBPROC create_context=(PFNWGLCREATECONTEXTATTRIBSARBPROC)wglGetProcAddress("wglCreateContextAttribsARB");if(create_context){const int attribs[]={WGL_CONTEXT_MAJOR_VERSION_ARB,2,WGL_CONTEXT_MINOR_VERSION_ARB,1,WGL_CONTEXT_PROFILE_MASK_ARB,WGL_CONTEXT_COMPATIBILITY_PROFILE_BIT_ARB,0};HGLRC modern=create_context(g_hdc,NULL,attribs);if(modern&&wglMakeCurrent(g_hdc,modern)){wglDeleteContext(bootstrap);g_gl_context=modern;}else{if(modern)wglDeleteContext(modern);g_gl_context=bootstrap;}}else g_gl_context=bootstrap;NDS_LOGI(TAG,"OpenGL context created: %s",(const char*)glGetString(GL_VERSION));return NDS_OK;}
