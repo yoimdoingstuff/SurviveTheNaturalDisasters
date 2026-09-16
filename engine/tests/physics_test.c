@@ -32,8 +32,10 @@ int main(void)
 {
     nds_instance* root = nds_instance_create(NDS_CLASS_DATAMODEL, "PhysicsTest");
     nds_physics_world world;
-    nds_instance *floor, *box, *far_box;
-    nds_vec3 pos;
+    nds_instance *floor, *box, *far_box, *wall;
+    nds_vec3 pos, normal;
+    nds_instance* hit = NULL;
+    float distance = 0.0f;
     nds_physics_body* body;
     int frame;
 
@@ -41,12 +43,36 @@ int main(void)
     floor = make_part(root, "Floor", (nds_vec3){0,-1,0}, (nds_vec3){10,2,10}, 1);
     box = make_part(root, "Box", (nds_vec3){0,4,0}, (nds_vec3){1,1,1}, 0);
     far_box = make_part(root, "FarBox", (nds_vec3){100,4,100}, (nds_vec3){1,1,1}, 0);
-    CHECK(floor != NULL && box != NULL && far_box != NULL);
+    wall = make_part(root, "Wall", (nds_vec3){0,2,-4}, (nds_vec3){6,4,1}, 1);
+    CHECK(floor != NULL && box != NULL && far_box != NULL && wall != NULL);
     CHECK(nds_physics_init(&world, 4) == NDS_OK);
     CHECK(nds_physics_add_scene(&world, root) == NDS_OK);
-    CHECK(world.count == 3);
+    CHECK(world.count == 4);
     body = nds_physics_find_body(&world, box);
     CHECK(body != NULL && body->dynamic);
+
+    /* A forward ray should hit the wall at its front face and report a normal
+     * pointing back toward the ray origin. */
+    CHECK(nds_physics_raycast(&world, (nds_vec3){0,2,0}, (nds_vec3){0,0,-1}, 20.0f,
+                              &hit, &distance, &normal) == NDS_OK);
+    CHECK(hit == wall);
+    CHECK(fabsf(distance - 3.5f) < 0.001f);
+    CHECK(fabsf(normal.z - 1.0f) < 0.001f);
+
+    /* Rays are normalized internally, so a direction of length two has the
+     * same hit distance. */
+    hit = NULL;
+    CHECK(nds_physics_raycast(&world, (nds_vec3){0,2,0}, (nds_vec3){0,0,-2}, 20.0f,
+                              &hit, &distance, &normal) == NDS_OK);
+    CHECK(hit == wall);
+    CHECK(fabsf(distance - 3.5f) < 0.001f);
+
+    /* A short ray must miss without producing a stale hit result. */
+    hit = wall;
+    CHECK(nds_physics_raycast(&world, (nds_vec3){0,2,0}, (nds_vec3){0,0,-1}, 3.0f,
+                              &hit, &distance, &normal) == NDS_OK);
+    CHECK(hit == NULL);
+    CHECK(fabsf(distance - 3.0f) < 0.001f);
 
     /* Simulate roughly one second at a time step that the engine actually
      * accepts. The body's bottom should settle on the floor near y=0.5. */
